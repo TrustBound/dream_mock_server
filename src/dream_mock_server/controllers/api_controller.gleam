@@ -1,7 +1,12 @@
-//// api_controller.gleam - Non-streaming API endpoints
+//// Controllers for the endpoints that do not stream.
 ////
-//// Handles HTTP concerns: parsing, response building.
-//// All formatting is delegated to the view layer.
+//// `router.create_router` sends requests to these functions. Each one builds
+//// a fixed, predictable response, so a test of an HTTP client can compare the
+//// result exactly. The views in `dream_mock_server/views/api_view` format the
+//// JSON bodies.
+////
+//// Every controller takes the Dream controller arguments: the request, an
+//// `EmptyContext` and `EmptyServices`. Most of them do not read the request.
 
 import dream/context.{type EmptyContext}
 import dream/http/header.{Header}
@@ -16,7 +21,21 @@ import gleam/list
 import gleam/option
 import gleam/string
 
-/// GET /get - Returns JSON with request info including query parameters
+/// Handles `GET /get`: returns the path and the query string as JSON.
+///
+/// Use it to check that a client sends the right path and query parameters.
+///
+/// ## Parameters
+///
+/// - `request`: The request. Its `path` and raw `query` go into the JSON.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with an `application/json` body such as
+/// `{"method":"GET","url":"/get","query":"page=1","headers":[]}`.
+/// The `headers` field is always an empty list.
 pub fn get(
   request: Request,
   _context: EmptyContext,
@@ -25,7 +44,25 @@ pub fn get(
   json_response(status.ok, api_view.get_to_json(request.path, request.query))
 }
 
-/// POST /post - Echoes request body as JSON
+/// Handles `POST /post`: echoes the request body as JSON.
+///
+/// Use it to check that a client sends the right request body.
+///
+/// ## Parameters
+///
+/// - `request`: The request. Its `path` and its body as UTF-8 text go into the JSON.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 201 with an `application/json` body such as
+/// `{"method":"POST","url":"/post","data":"<request body>"}`.
+///
+/// ## Errors
+///
+/// When the body is not valid UTF-8 text, returns status 400 with the
+/// body `{"error":"Request body is not UTF-8 text"}`.
 pub fn post(
   request: Request,
   _context: EmptyContext,
@@ -34,7 +71,25 @@ pub fn post(
   echo_text_body(request, status.created, api_view.post_to_json)
 }
 
-/// PUT /put - Echoes request body as JSON
+/// Handles `PUT /put`: echoes the request body as JSON.
+///
+/// Use it to check that a client sends the right request body.
+///
+/// ## Parameters
+///
+/// - `request`: The request. Its `path` and its body as UTF-8 text go into the JSON.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with an `application/json` body such as
+/// `{"method":"PUT","url":"/put","data":"<request body>"}`.
+///
+/// ## Errors
+///
+/// When the body is not valid UTF-8 text, returns status 400 with the
+/// body `{"error":"Request body is not UTF-8 text"}`.
 pub fn put(
   request: Request,
   _context: EmptyContext,
@@ -43,7 +98,25 @@ pub fn put(
   echo_text_body(request, status.ok, api_view.put_to_json)
 }
 
-/// PATCH /patch - Echoes request body as JSON
+/// Handles `PATCH /patch`: echoes the request body as JSON.
+///
+/// Use it to check that a client sends the right request body.
+///
+/// ## Parameters
+///
+/// - `request`: The request. Its `path` and its body as UTF-8 text go into the JSON.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with an `application/json` body such as
+/// `{"method":"PATCH","url":"/patch","data":"<request body>"}`.
+///
+/// ## Errors
+///
+/// When the body is not valid UTF-8 text, returns status 400 with the
+/// body `{"error":"Request body is not UTF-8 text"}`.
 pub fn patch(
   request: Request,
   _context: EmptyContext,
@@ -68,7 +141,18 @@ fn echo_text_body(
   }
 }
 
-/// DELETE /delete - Returns success response
+/// Handles `DELETE /delete`: returns the method and the path as JSON.
+///
+/// ## Parameters
+///
+/// - `request`: The request. Its `path` goes into the JSON.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with the `application/json` body
+/// `{"method":"DELETE","url":"/delete"}`.
 pub fn delete(
   request: Request,
   _context: EmptyContext,
@@ -77,7 +161,25 @@ pub fn delete(
   json_response(status.ok, api_view.delete_to_json(request.path))
 }
 
-/// GET /status/:code - Returns response with specified status code
+/// Handles `GET /status/:code`: returns a response with the status code of the path.
+///
+/// Use it to check how a client handles any status code, for example
+/// `GET /status/503`.
+///
+/// ## Parameters
+///
+/// - `request`: The request. Its `code` path parameter is the status to return.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// The status `code` with the `application/json` body `{"status":<code>}`.
+///
+/// ## Errors
+///
+/// When `code` is missing or is not an integer, returns status 400 with
+/// an `application/json` body such as `{"error":"code must be an integer"}`.
 pub fn status(
   request: Request,
   _context: EmptyContext,
@@ -90,7 +192,18 @@ pub fn status(
   }
 }
 
-/// GET /json - Returns simple JSON object
+/// Handles `GET /json`: returns a small, fixed JSON object.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with the `application/json` body
+/// `{"message":"Hello, World!","success":true}`.
 pub fn json_endpoint(
   _request: Request,
   _context: EmptyContext,
@@ -99,7 +212,17 @@ pub fn json_endpoint(
   json_response(status.ok, api_view.simple_json_to_string())
 }
 
-/// GET /text - Returns plain text
+/// Handles `GET /text`: returns a fixed plain-text greeting.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with the `text/plain; charset=utf-8` body `Hello, World!`.
 pub fn text(
   _request: Request,
   _context: EmptyContext,
@@ -108,7 +231,20 @@ pub fn text(
   text_response(status.ok, api_view.text_to_string())
 }
 
-/// GET /uuid - Returns a UUID-like string (simple version)
+/// Handles `GET /uuid`: returns a fixed UUID as JSON.
+///
+/// The UUID is always the same, so tests can compare it exactly.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with the `application/json` body
+/// `{"uuid":"123e4567-e89b-12d3-a456-426614174000"}`.
 pub fn uuid(
   _request: Request,
   _context: EmptyContext,
@@ -117,7 +253,20 @@ pub fn uuid(
   json_response(status.ok, api_view.uuid_to_json())
 }
 
-/// GET /large - Returns a very large response body (for memory testing)
+/// Handles `GET /large`: returns a body of about 1.1 MB.
+///
+/// Use it to check how a client handles a large body that is not streamed.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with a `text/plain; charset=utf-8` body of 20,000 copies of the
+/// line `This is a repeated line to create a large response body.`.
 pub fn large(
   _request: Request,
   _context: EmptyContext,
@@ -129,7 +278,17 @@ pub fn large(
   text_response(status.ok, repeated)
 }
 
-/// GET /empty - Returns empty response body
+/// Handles `GET /empty`: returns an empty body.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with an empty `text/plain; charset=utf-8` body.
 pub fn empty(
   _request: Request,
   _context: EmptyContext,
@@ -138,7 +297,20 @@ pub fn empty(
   text_response(status.ok, "")
 }
 
-/// GET /slow - Returns response after a long delay
+/// Handles `GET /slow`: waits 5 seconds, then returns a short text.
+///
+/// Use it to check the timeout of a client. The process that handles the
+/// request sleeps for the full 5 seconds.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with the `text/plain; charset=utf-8` body `Slow response`.
 pub fn slow(
   _request: Request,
   _context: EmptyContext,
@@ -149,7 +321,20 @@ pub fn slow(
   text_response(status.ok, "Slow response")
 }
 
-/// POST /content-type - Echoes the request Content-Type header value as plain text
+/// Handles `POST /content-type`: returns the `Content-Type` of the request as text.
+///
+/// Use it to check the content type that a client sends.
+///
+/// ## Parameters
+///
+/// - `request`: The request. Its `content_type` is the body of the response.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with a `text/plain; charset=utf-8` body that holds the
+/// `Content-Type` value, or an empty body when the request has none.
 pub fn content_type(
   request: Request,
   _context: EmptyContext,
@@ -159,7 +344,20 @@ pub fn content_type(
   text_response(status.ok, content_type)
 }
 
-/// GET /gzip - Returns "Hello, World!" gzip-compressed
+/// Handles `GET /gzip`: returns `Hello, World!` compressed with gzip.
+///
+/// Use it to check that a client decompresses a gzip body.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with the headers `Content-Type: text/plain` and
+/// `Content-Encoding: gzip`, and the gzip bytes of `Hello, World!` as the body.
 pub fn gzip(
   _request: Request,
   _context: EmptyContext,
@@ -178,7 +376,20 @@ pub fn gzip(
   )
 }
 
-/// GET /deflate - Returns "Hello, World!" deflate-compressed
+/// Handles `GET /deflate`: returns `Hello, World!` compressed with deflate.
+///
+/// Use it to check that a client decompresses a deflate (zlib) body.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with the headers `Content-Type: text/plain` and
+/// `Content-Encoding: deflate`, and the zlib bytes of `Hello, World!` as the body.
 pub fn deflate(
   _request: Request,
   _context: EmptyContext,
@@ -197,7 +408,20 @@ pub fn deflate(
   )
 }
 
-/// GET /identity - Returns "Hello, World!" with Content-Encoding: identity
+/// Handles `GET /identity`: returns plain text with `Content-Encoding: identity`.
+///
+/// Use it to check that a client reads an `identity` body as it is.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with the headers `Content-Type: text/plain; charset=utf-8` and
+/// `Content-Encoding: identity`, and the body `Hello, World!`.
 pub fn identity(
   _request: Request,
   _context: EmptyContext,
@@ -215,7 +439,21 @@ pub fn identity(
   )
 }
 
-/// GET /unknown-encoding - Returns raw bytes with Content-Encoding: br
+/// Handles `GET /unknown-encoding`: returns plain text with `Content-Encoding: br`.
+///
+/// The body is not compressed. Use it to check what a client does with an
+/// encoding that it does not support.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with the headers `Content-Type: text/plain; charset=utf-8` and
+/// `Content-Encoding: br`, and the body `raw-uncompressed-bytes`.
 pub fn unknown_encoding(
   _request: Request,
   _context: EmptyContext,
@@ -233,7 +471,20 @@ pub fn unknown_encoding(
   )
 }
 
-/// GET /corrupted-gzip - Returns garbage bytes with Content-Encoding: gzip
+/// Handles `GET /corrupted-gzip`: returns bytes that are not gzip, with `Content-Encoding: gzip`.
+///
+/// Use it to check that a client reports a body that it cannot decompress.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with the headers `Content-Type: text/plain` and
+/// `Content-Encoding: gzip`, and the body `this is not valid gzip data at all`.
 pub fn corrupted_gzip(
   _request: Request,
   _context: EmptyContext,
@@ -251,11 +502,22 @@ pub fn corrupted_gzip(
   )
 }
 
-/// GET /non-utf8-error - Returns HTTP 400 with a body containing non-UTF-8 bytes
+/// Handles `GET /non-utf8-error`: returns status 400 with a body that is not valid UTF-8.
 ///
-/// The body is "Error: " followed by bytes 0xC0, 0xC1, 0xFE, 0xFF which are
-/// invalid in UTF-8 encoding. Used to test that the HTTP client can handle
-/// error responses whose bodies are not valid UTF-8.
+/// The body is `Error: ` followed by the bytes 0xC0, 0xC1, 0xFE and 0xFF, which
+/// are not valid in UTF-8. Use it to check that a client can read an error
+/// response whose body is not text.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 400 with the header `Content-Type: text/plain` and the bytes above as
+/// the body.
 pub fn non_utf8_error(
   _request: Request,
   _context: EmptyContext,
@@ -272,7 +534,20 @@ pub fn non_utf8_error(
   )
 }
 
-/// GET /echo-accept-encoding - Echoes the request's Accept-Encoding header
+/// Handles `GET /echo-accept-encoding`: returns the `Accept-Encoding` header of the request as text.
+///
+/// The header name is matched in any letter case.
+///
+/// ## Parameters
+///
+/// - `request`: The request. Its `Accept-Encoding` header is the body of the response.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with a `text/plain; charset=utf-8` body that holds the header
+/// value, or an empty body when the request has no `Accept-Encoding` header.
 pub fn echo_accept_encoding(
   request: Request,
   _context: EmptyContext,
@@ -289,7 +564,24 @@ pub fn echo_accept_encoding(
   text_response(status.ok, value)
 }
 
-/// GET /redirect/301 - Returns 301 with Location: /text
+/// Handles `GET /redirect/301`: redirects to `/text` with status 301.
+///
+/// Use it to check how a client follows a 301 redirect.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 301 with the header `Location: /text` and an empty body.
+///
+/// ## See Also
+///
+/// - `redirect_chain` for a redirect in two steps
+/// - `redirect_absolute` for a `Location` with the host
 pub fn redirect_301(
   _request: Request,
   _context: EmptyContext,
@@ -298,7 +590,24 @@ pub fn redirect_301(
   redirect_response(status.moved_permanently, "/text")
 }
 
-/// GET /redirect/302 - Returns 302 with Location: /text
+/// Handles `GET /redirect/302`: redirects to `/text` with status 302.
+///
+/// Use it to check how a client follows a 302 redirect.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 302 with the header `Location: /text` and an empty body.
+///
+/// ## See Also
+///
+/// - `redirect_chain` for a redirect in two steps
+/// - `redirect_absolute` for a `Location` with the host
 pub fn redirect_302(
   _request: Request,
   _context: EmptyContext,
@@ -307,7 +616,24 @@ pub fn redirect_302(
   redirect_response(status.found, "/text")
 }
 
-/// GET /redirect/303 - Returns 303 with Location: /text (forces GET)
+/// Handles `GET /redirect/303`: redirects to `/text` with status 303.
+///
+/// Use it to check how a client follows a 303 redirect. A client changes the method to GET.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 303 with the header `Location: /text` and an empty body.
+///
+/// ## See Also
+///
+/// - `redirect_chain` for a redirect in two steps
+/// - `redirect_absolute` for a `Location` with the host
 pub fn redirect_303(
   _request: Request,
   _context: EmptyContext,
@@ -316,7 +642,24 @@ pub fn redirect_303(
   redirect_response(status.see_other, "/text")
 }
 
-/// GET /redirect/307 - Returns 307 with Location: /text (preserves method)
+/// Handles `GET /redirect/307`: redirects to `/text` with status 307.
+///
+/// Use it to check how a client follows a 307 redirect. A client keeps the method and the body.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 307 with the header `Location: /text` and an empty body.
+///
+/// ## See Also
+///
+/// - `redirect_chain` for a redirect in two steps
+/// - `redirect_absolute` for a `Location` with the host
 pub fn redirect_307(
   _request: Request,
   _context: EmptyContext,
@@ -325,7 +668,24 @@ pub fn redirect_307(
   redirect_response(status.temporary_redirect, "/text")
 }
 
-/// GET /redirect/308 - Returns 308 with Location: /text (preserves method, permanent)
+/// Handles `GET /redirect/308`: redirects to `/text` with status 308.
+///
+/// Use it to check how a client follows a 308 redirect. A client keeps the method and the body. The redirect is permanent.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 308 with the header `Location: /text` and an empty body.
+///
+/// ## See Also
+///
+/// - `redirect_chain` for a redirect in two steps
+/// - `redirect_absolute` for a `Location` with the host
 pub fn redirect_308(
   _request: Request,
   _context: EmptyContext,
@@ -334,7 +694,24 @@ pub fn redirect_308(
   redirect_response(308, "/text")
 }
 
-/// GET /redirect/chain - Returns 302 with Location: /redirect/chain/2
+/// Handles `GET /redirect/chain`: the first step of a chain of two redirects.
+///
+/// `/redirect/chain` redirects to `/redirect/chain/2`, which redirects to
+/// `/text`. Use it to check that a client follows more than one redirect.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 302 with the header `Location: /redirect/chain/2` and an empty body.
+///
+/// ## See Also
+///
+/// - `redirect_chain_2` for the second step
 pub fn redirect_chain(
   _request: Request,
   _context: EmptyContext,
@@ -343,7 +720,21 @@ pub fn redirect_chain(
   redirect_response(status.found, "/redirect/chain/2")
 }
 
-/// GET /redirect/chain/2 - Returns 302 with Location: /text
+/// Handles `GET /redirect/chain/2`: the second step of a chain of two redirects.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 302 with the header `Location: /text` and an empty body.
+///
+/// ## See Also
+///
+/// - `redirect_chain` for the first step
 pub fn redirect_chain_2(
   _request: Request,
   _context: EmptyContext,
@@ -352,7 +743,22 @@ pub fn redirect_chain_2(
   redirect_response(status.found, "/text")
 }
 
-/// GET /redirect/absolute - Returns 302 with a fully-qualified Location URL
+/// Handles `GET /redirect/absolute`: redirects to `/text` with a full URL in `Location`.
+///
+/// The URL uses the `Host` header of the request, so the redirect goes back to
+/// the same server. Use it to check that a client follows an absolute
+/// `Location`.
+///
+/// ## Parameters
+///
+/// - `request`: The request. Its `Host` header gives the host and port of the URL.
+/// - `_context`: Not used.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// Status 302 with the header `Location: http://<host>/text` and an empty body.
+/// When the request has no `Host` header, the host is `localhost:9876`.
 pub fn redirect_absolute(
   request: Request,
   _context: EmptyContext,

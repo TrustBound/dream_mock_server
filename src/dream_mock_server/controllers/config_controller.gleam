@@ -1,9 +1,8 @@
-//// config_controller.gleam - Config-mode request handler
+//// The controller of config mode.
 ////
-//// When the mock server is started with a config list, all requests are
-//// handled by this controller. It looks up the first matching route by path
-//// (exact or prefix) and optional method, and returns that route's status and body.
-//// If no route matches, returns 404.
+//// When the server runs with `server.start_with_config`, every request comes
+//// to `handle`. It returns the status and body of the first `MockRoute` that
+//// matches the request, or 404 when no route matches.
 
 import dream/http/request.{type Request}
 import dream/http/response.{type Response, text_response}
@@ -14,8 +13,29 @@ import dream_mock_server/config.{
 import gleam/option
 import gleam/string
 
-/// Handle a request by finding the first matching route in the config.
-/// First match wins (list order). No match returns 404.
+/// Handles a request in config mode.
+///
+/// A route matches when its path matches (`Exact`: the same path, `Prefix`:
+/// the request path starts with the route path) and its method is `None` or
+/// the method of the request. The routes are checked in list order, and the
+/// first match wins.
+///
+/// ## Parameters
+///
+/// - `request`: The request. Its `path` and `method` select the route.
+/// - `context`: Holds the routes of the config, in order.
+/// - `_services`: Not used.
+///
+/// ## Returns
+///
+/// The `status` and `body` of the first route that matches, as a
+/// `text/plain; charset=utf-8` response. When no route matches, status 404
+/// with the body `Not found`.
+///
+/// ## See Also
+///
+/// - `dream_mock_server/server.start_with_config`
+/// - `dream_mock_server/config.MockRoute`
 pub fn handle(
   request: Request,
   context: MockConfigContext,

@@ -1,64 +1,138 @@
-//// api_view.gleam - Presentation logic for API endpoints
+//// Formats the bodies of the endpoints in
+//// `dream_mock_server/controllers/api_controller`.
 ////
-//// Pure formatting functions: Request data → String
-//// No Result types, no Response types, no error handling.
+//// Each function returns a string. JSON functions return compact JSON with the
+//// fields in a fixed order.
 
 import gleam/json
 
-/// Format GET request info as JSON string
+/// Formats the body of `GET /get`.
+///
+/// ## Parameters
+///
+/// - `path`: The request path.
+/// - `query`: The raw query string.
+///
+/// ## Returns
+///
+/// The JSON `{"method":"GET","url":<path>,"query":<query>,"headers":[]}`.
 pub fn get_to_json(path: String, query: String) -> String {
   get_to_json_object(path, query)
   |> json.to_string()
 }
 
-/// Format POST request info as JSON string
+/// Formats the body of `POST /post`.
+///
+/// ## Parameters
+///
+/// - `path`: The request path.
+/// - `body`: The request body as text.
+///
+/// ## Returns
+///
+/// The JSON `{"method":"POST","url":<path>,"data":<body>}`.
 pub fn post_to_json(path: String, body: String) -> String {
   post_to_json_object(path, body)
   |> json.to_string()
 }
 
-/// Format PUT request info as JSON string
+/// Formats the body of `PUT /put`.
+///
+/// ## Parameters
+///
+/// - `path`: The request path.
+/// - `body`: The request body as text.
+///
+/// ## Returns
+///
+/// The JSON `{"method":"PUT","url":<path>,"data":<body>}`.
 pub fn put_to_json(path: String, body: String) -> String {
   put_to_json_object(path, body)
   |> json.to_string()
 }
 
-/// Format PATCH request info as JSON string
+/// Formats the body of `PATCH /patch`.
+///
+/// ## Parameters
+///
+/// - `path`: The request path.
+/// - `body`: The request body as text.
+///
+/// ## Returns
+///
+/// The JSON `{"method":"PATCH","url":<path>,"data":<body>}`.
 pub fn patch_to_json(path: String, body: String) -> String {
   patch_to_json_object(path, body)
   |> json.to_string()
 }
 
-/// Format DELETE request info as JSON string
+/// Formats the body of `DELETE /delete`.
+///
+/// ## Parameters
+///
+/// - `path`: The request path.
+///
+/// ## Returns
+///
+/// The JSON `{"method":"DELETE","url":<path>}`.
 pub fn delete_to_json(path: String) -> String {
   delete_to_json_object(path)
   |> json.to_string()
 }
 
-/// Format status code response as JSON string
+/// Formats the body of `GET /status/:code`.
+///
+/// ## Parameters
+///
+/// - `code`: The status code of the response.
+///
+/// ## Returns
+///
+/// The JSON `{"status":<code>}`.
 pub fn status_to_json(code: Int) -> String {
   status_to_json_object(code)
   |> json.to_string()
 }
 
-/// Format simple JSON response
+/// Formats the body of `GET /json`.
+///
+/// ## Returns
+///
+/// The JSON `{"message":"Hello, World!","success":true}`.
 pub fn simple_json_to_string() -> String {
   simple_json_object()
   |> json.to_string()
 }
 
-/// Format UUID response as JSON string
+/// Formats the body of `GET /uuid`.
+///
+/// ## Returns
+///
+/// The JSON `{"uuid":"123e4567-e89b-12d3-a456-426614174000"}`. The UUID is
+/// always the same.
 pub fn uuid_to_json() -> String {
   uuid_json_object()
   |> json.to_string()
 }
 
-/// Format plain text response
+/// Formats the body of `GET /text`.
+///
+/// ## Returns
+///
+/// The text `Hello, World!`.
 pub fn text_to_string() -> String {
   "Hello, World!"
 }
 
-/// Format error message as JSON string
+/// Formats the body of an error response.
+///
+/// ## Parameters
+///
+/// - `message`: The error message.
+///
+/// ## Returns
+///
+/// The JSON `{"error":<message>}`.
 pub fn error_to_json(message: String) -> String {
   error_to_json_object(message)
   |> json.to_string()

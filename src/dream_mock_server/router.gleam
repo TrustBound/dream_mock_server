@@ -1,41 +1,56 @@
-//// router.gleam - Routes for mock server
+//// The routers of the mock server.
 ////
-//// Defines both streaming and non-streaming endpoints for testing Dream's HTTP client.
+//// `create_router` holds every built-in endpoint. `create_config_router` sends
+//// every request to the config-mode controller. `server.start` and
+//// `server.start_with_config` use them, and you can use them with a Dream
+//// server that you set up yourself.
 ////
-//// ## Endpoints
+//// ## Built-in endpoints
 ////
-//// **Non-streaming:**
-//// - `GET /get` - Returns JSON with request info
-//// - `POST /post` - Echoes request body as JSON
-//// - `PUT /put` - Echoes request body as JSON
-//// - `DELETE /delete` - Returns success response
-//// - `POST /content-type` - Echoes request Content-Type as plain text
-//// - `GET /json` - Returns simple JSON object
-//// - `GET /text` - Returns plain text
-//// - `GET /uuid` - Returns UUID-like string
-//// - `GET /status/:code` - Returns response with specified status code
-//// - `GET /large` - Returns ~1MB response (memory testing)
-//// - `GET /empty` - Returns empty response body
-//// - `GET /slow` - Returns response after 5s delay
+//// **Info page:**
+//// - `GET /` - Text page that lists the endpoints
 ////
-//// **Redirect:**
-//// - `GET /redirect/301` - 301 redirect to /text
-//// - `GET /redirect/302` - 302 redirect to /text
-//// - `GET /redirect/303` - 303 redirect to /text (forces GET)
-//// - `GET /redirect/307` - 307 redirect to /text (preserves method)
-//// - `GET /redirect/308` - 308 redirect to /text (preserves method, permanent)
-//// - `GET /redirect/chain` - 302 chain: /chain -> /chain/2 -> /text
-//// - `GET /redirect/absolute` - 302 with fully-qualified Location URL
+//// **Request echo and fixed bodies:**
+//// - `GET /get` - Path and query as JSON
+//// - `POST /post` - Request body as JSON (status 201)
+//// - `PUT /put` - Request body as JSON
+//// - `PATCH /patch` - Request body as JSON
+//// - `DELETE /delete` - Path as JSON
+//// - `POST /content-type` - The request `Content-Type` as text
+//// - `GET /json` - A fixed JSON object
+//// - `GET /text` - `Hello, World!` as text
+//// - `GET /uuid` - A fixed UUID as JSON
+//// - `GET /status/:code` - A response with status `code`
+//// - `GET /large` - A body of about 1.1 MB
+//// - `GET /empty` - An empty body
+//// - `GET /slow` - A response after 5 seconds
+////
+//// **Compression:**
+//// - `GET /gzip` - gzip body
+//// - `GET /deflate` - deflate body
+//// - `GET /identity` - `Content-Encoding: identity`
+//// - `GET /unknown-encoding` - `Content-Encoding: br`, not compressed
+//// - `GET /corrupted-gzip` - `Content-Encoding: gzip` with bytes that are not gzip
+//// - `GET /echo-accept-encoding` - The request `Accept-Encoding` as text
+//// - `GET /non-utf8-error` - Status 400 with a body that is not UTF-8
+////
+//// **Redirects:**
+//// - `GET /redirect/301`, `/302`, `/303`, `/307`, `/308` - Redirect to `/text`
+//// - `GET /redirect/chain` - `/redirect/chain/2`, then `/text`
+//// - `GET /redirect/absolute` - Redirect with a full URL
 ////
 //// **Streaming:**
-//// - `GET /` - Info page
-//// - `GET /stream/fast` - 10 chunks @ 100ms
-//// - `GET /stream/slow` - 5 chunks @ 2s
-//// - `GET /stream/burst` - 7 chunks with variable timing
-//// - `GET /stream/error` - 3 chunks then 500 status
-//// - `GET /stream/huge` - 100 chunks
-//// - `GET /stream/json` - JSON object stream
-//// - `GET /stream/binary` - Binary data stream
+//// - `GET /stream/fast` - 10 chunks, one each 100 ms
+//// - `GET /stream/slow` - 5 chunks, one each 2 s
+//// - `GET /stream/burst` - 7 chunks with fixed, different delays
+//// - `GET /stream/error` - 3 chunks with status 500
+//// - `GET /stream/drop` - 2 chunks, then the connection closes
+//// - `GET /stream/huge` - 100 chunks, one each 10 ms
+//// - `GET /stream/json` - 5 JSON objects, one on each line
+//// - `GET /stream/binary` - 256 chunks of binary data
+//// - `GET /stream/gzip` - One gzip stream in chunks
+//// - `GET /stream/deflate` - One deflate stream in chunks
+//// - `GET /stream/unknown-encoding` - Chunks with `Content-Encoding: br`
 
 import dream/context.{type EmptyContext}
 import dream/http/request.{Delete, Get, Patch, Post, Put}
@@ -45,10 +60,38 @@ import dream_mock_server/controllers/api_controller
 import dream_mock_server/controllers/config_controller
 import dream_mock_server/controllers/stream_controller
 
-/// Create a router with all mock endpoints (streaming and non-streaming)
+/// Creates the router with every built-in endpoint.
 ///
-/// Returns a router configured with all available mock endpoints for testing
-/// HTTP clients. Use this router when starting the server programmatically.
+/// `server.start` uses this router. Use it yourself when you need other Dream
+/// server settings, for example another bind address.
+///
+/// ## Returns
+///
+/// A router for the built-in endpoints, with an `EmptyContext` and
+/// `EmptyServices`. The module documentation lists the endpoints.
+///
+/// ## Example
+///
+/// ### Serve the endpoints from your own server <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/own_server.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+///
+/// ```gleam
+/// import dream/servers/mist/server as dream_server
+/// import dream_mock_server/router
+/// import gleam/otp/actor
+///
+/// pub fn start_own_server(
+///   port: Int,
+/// ) -> Result(dream_server.ServerHandle, actor.StartError) {
+///   dream_server.new()
+///   |> dream_server.router(router.create_router())
+///   |> dream_server.bind("localhost")
+///   |> dream_server.listen_with_handle(port)
+/// }
+/// ```
+///
+/// ## See Also
+///
+/// - `dream_mock_server/server.start`
 pub fn create_router() -> Router(EmptyContext, EmptyServices) {
   router()
   // Info page
@@ -299,12 +342,44 @@ pub fn create_router() -> Router(EmptyContext, EmptyServices) {
   )
 }
 
-/// Create a router for config mode: a single catch-all route per method
-/// that delegates to the config controller. Used when starting with
-/// `server.start_with_config(port, config)`.
+/// Creates the router of config mode.
 ///
-/// This router intentionally contains no built-in demo endpoints. All response
-/// behavior comes from the caller-provided `MockRoute` list held in context.
+/// The router has one catch-all route for each of GET, POST, PUT, DELETE and
+/// PATCH. Each one sends the request to `config_controller.handle`, which
+/// answers from the routes in the `MockConfigContext`. The router has no
+/// built-in endpoints. `server.start_with_config` uses this router.
+///
+/// ## Returns
+///
+/// A router that needs a `MockConfigContext` as its context and
+/// `EmptyServices`.
+///
+/// ## Example
+///
+/// ### Serve config-mode routes from your own server <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/own_config_server.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+///
+/// ```gleam
+/// import dream/servers/mist/server as dream_server
+/// import dream_mock_server/config.{type MockRoute, MockConfigContext}
+/// import dream_mock_server/router
+/// import gleam/otp/actor
+///
+/// pub fn start_own_config_server(
+///   port: Int,
+///   routes: List(MockRoute),
+/// ) -> Result(dream_server.ServerHandle, actor.StartError) {
+///   dream_server.new()
+///   |> dream_server.context(MockConfigContext(routes: routes))
+///   |> dream_server.router(router.create_config_router())
+///   |> dream_server.bind("localhost")
+///   |> dream_server.listen_with_handle(port)
+/// }
+/// ```
+///
+/// ## See Also
+///
+/// - `dream_mock_server/server.start_with_config`
+/// - `dream_mock_server/config.MockRoute`
 pub fn create_config_router() -> Router(MockConfigContext, EmptyServices) {
   router()
   |> route(
