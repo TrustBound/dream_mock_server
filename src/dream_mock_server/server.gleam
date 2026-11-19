@@ -4,7 +4,7 @@
 //// on a port, send requests, then stop it. `start` serves the built-in
 //// endpoints. `start_with_config` serves only the routes that you give.
 ////
-//// ## Run a test body against the mock server <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/programmatic_mode.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+//// ## Run a test body against the mock server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/programmatic_mode.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 ////
 //// ```gleam
 //// import dream_mock_server/server
@@ -71,7 +71,7 @@ import gleam/otp/actor
 ///
 /// ## Example
 ///
-/// ### Start, use and stop the server <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/programmatic_control.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+/// ### Start, use and stop the server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/programmatic_control.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 ///
 /// ```gleam
 /// import dream/servers/mist/server as dream_server
@@ -138,7 +138,7 @@ pub fn start(port: Int) -> Result(dream_server.ServerHandle, actor.StartError) {
 ///
 /// ## Example
 ///
-/// ### Start with one prefix route <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/config_mode_prefix.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+/// ### Start with one prefix route <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/config_mode_prefix.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 ///
 /// ```gleam
 /// import dream/servers/mist/server as dream_server
@@ -199,7 +199,7 @@ pub fn start_with_config(
 ///
 /// ## Example
 ///
-/// ### Start, use and stop the server <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/programmatic_control.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+/// ### Start, use and stop the server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/programmatic_control.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 ///
 /// ```gleam
 /// import dream/servers/mist/server as dream_server

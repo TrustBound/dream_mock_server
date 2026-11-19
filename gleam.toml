@@ -1,5 +1,5 @@
 name = "dream_mock_server"
-version = "1.1.1"
+version = "2.0.0"
 description = "General-purpose HTTP mock server developed by Dream - provides both streaming and non-streaming endpoints for testing HTTP clients"
 licences = ["MIT"]
 repository = { type = "github", user = "TrustBound", repo = "dream_mock_server" }
@@ -21,3 +21,4 @@ gleam_yielder = ">= 1.1.0 and < 2.0.0"
 [dev-dependencies]
 # Switched to a Hex version range once it is published.
 dream_test = { git = "https://github.com/TrustBound/dream_test.git", ref = "c583145874e63118cc5e680a293dd52cd4c35517" }
+gleam_httpc = ">= 5.0.0 and < 6.0.0"

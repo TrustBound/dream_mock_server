@@ -58,7 +58,7 @@ Then access endpoints at `http://localhost:3004/`
 
 Use in tests or other applications:
 
-#### Run a test body against the mock server <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/programmatic_mode.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+#### Run a test body against the mock server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/programmatic_mode.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
 import dream_mock_server/server
@@ -85,7 +85,7 @@ pub fn with_mock_server(
 
 For proxy tests or any test that needs a **deterministic upstream** with specific status and body per path, start the server with a config list. The mock has no built-in provider logic (no OpenAI, Google, AWS, etc.); the caller supplies all path → (status, body) mappings. First matching route in the list wins.
 
-#### Start with one prefix route <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/config_mode_prefix.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+#### Start with one prefix route <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/config_mode_prefix.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
 import dream/servers/mist/server as dream_server
@@ -125,7 +125,7 @@ pub fn start_chat_mock(
 - `method: None` matches any method.
 - No match returns `404` with body `"Not found"`.
 
-#### Exact + method-specific example <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/config_mode_method_specific.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+#### Exact + method-specific example <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/config_mode_method_specific.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
 import dream/http/request.{Get, Post}
@@ -146,7 +146,7 @@ pub fn resource_routes() -> List(MockRoute) {
 
 If you mix broad prefixes and specific routes, put specific routes first:
 
-##### Good: specific route first <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/config_mode_ordering.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+##### Good: specific route first <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/config_mode_ordering.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
 import dream_mock_server/config.{type MockRoute, Exact, MockRoute, Prefix}
@@ -318,10 +318,11 @@ pub fn api_routes() -> List(MockRoute) {
 
 ## Integration Tests
 
-The Cucumber scenarios in `test/integration/` need the integration harness of
-the [Dream repository](https://github.com/TrustBound/dream), so they do not run
-from this repository. The Gleam tests (`gleam test`) start the server and send
-real HTTP requests to it.
+The Gherkin scenarios in `test/features/mock_server.feature` run with
+[dream_test](https://hexdocs.pm/dream_test)'s Gherkin support, as part of
+`gleam test`. Each scenario starts the server on a free port, sends real HTTP
+requests to it and stops it. The step definitions are in
+`test/features/mock_server_feature.gleam`.
 
 The scenarios verify:
 - All endpoints return correct status codes
@@ -344,7 +345,7 @@ make run
 
 Start/stop programmatically for tests. `http_helper` and `port` are small test helpers in this module's `test/snippets/` folder.
 
-#### Start, use and stop the server <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/programmatic_control.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+#### Start, use and stop the server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/programmatic_control.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
 import dream/servers/mist/server as dream_server
@@ -377,7 +378,7 @@ fn start_server(port: Int) -> Result(dream_server.ServerHandle, String) {
 
 Dream's HTTP client tests use the mock server in this way. This test starts the server on a free port from the operating system:
 
-#### A test against the mock server <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/integration_testing.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+#### A test against the mock server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/integration_testing.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
 import dream_mock_server/server
@@ -423,7 +424,7 @@ pub fn tests() -> TestSuite(Nil) {
 
 Streaming endpoints use Dream's `response.stream_response()`:
 
-#### Fast stream controller <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/streaming_technique.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+#### Fast stream controller <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/streaming_technique.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
 import dream/context.{type EmptyContext}
@@ -459,7 +460,7 @@ fn create_fast_chunk(number: Int) -> BitArray {
 
 Non-streaming endpoints use standard `json_response()` and `text_response()`:
 
-#### JSON controller <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/non_streaming_technique.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+#### JSON controller <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/non_streaming_technique.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
 import dream/context.{type EmptyContext}

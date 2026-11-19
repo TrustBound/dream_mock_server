@@ -122,6 +122,7 @@ All contributions must include tests:
 
 - **Unit tests** - Fast, isolated, deterministic
 - **Server tests** - Start the server on a free port and send real requests
+- **Gherkin scenarios** - `test/features/mock_server.feature`, with step definitions in `test/features/mock_server_feature.gleam`; dream_test runs them inside `gleam test`
 - **100% coverage** - For all code in `src/`; `gleam test` fails below it
 
 See the [Testing Guide](https://github.com/TrustBound/dream/blob/release/3.0.0/docs/contributing/testing.md) for details.

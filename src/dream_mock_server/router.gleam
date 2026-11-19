@@ -72,7 +72,7 @@ import dream_mock_server/controllers/stream_controller
 ///
 /// ## Example
 ///
-/// ### Serve the endpoints from your own server <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/own_server.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+/// ### Serve the endpoints from your own server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/own_server.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 ///
 /// ```gleam
 /// import dream/servers/mist/server as dream_server
@@ -356,7 +356,7 @@ pub fn create_router() -> Router(EmptyContext, EmptyServices) {
 ///
 /// ## Example
 ///
-/// ### Serve config-mode routes from your own server <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/own_config_server.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+/// ### Serve config-mode routes from your own server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/own_config_server.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 ///
 /// ```gleam
 /// import dream/servers/mist/server as dream_server

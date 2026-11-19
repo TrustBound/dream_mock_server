@@ -14,6 +14,7 @@ import dream_test/coverage
 import dream_test/reporters/bdd
 import dream_test/reporters/progress
 import dream_test/runner
+import features/mock_server_feature
 import server_test
 import snippets/integration_testing
 import snippets_test
@@ -33,6 +34,7 @@ pub fn main() {
     standalone_test.tests(),
     snippets_test.tests(),
     integration_testing.tests(),
+    mock_server_feature.tests(),
   ])
   // The streaming endpoints sleep between chunks: /stream/slow takes about
   // ten seconds to read.

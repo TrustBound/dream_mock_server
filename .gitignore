@@ -2,6 +2,3 @@
 *.ez
 /build
 erl_crash.dump
-# Elixir integration tests (mix)
-/_build
-/deps

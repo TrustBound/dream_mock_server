@@ -38,7 +38,7 @@ pub type PathMatch {
 ///
 /// ## Example
 ///
-/// ### A specific route before a prefix route <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/config_mode_ordering.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+/// ### A specific route before a prefix route <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/config_mode_ordering.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 ///
 /// ```gleam
 /// import dream_mock_server/config.{type MockRoute, Exact, MockRoute, Prefix}
