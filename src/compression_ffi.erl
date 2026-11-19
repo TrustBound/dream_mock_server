@@ -39,5 +39,5 @@ deflate_compress_chunks(DataList) when is_list(DataList) ->
     zlib:close(Z),
     Chunks ++ [Final].
 
-ensure_binary(Bin) when is_binary(Bin) -> Bin;
-ensure_binary(List) when is_list(List) -> list_to_binary(List).
+%% Gleam passes only bit arrays, so every item is a binary.
+ensure_binary(Bin) when is_binary(Bin) -> Bin.

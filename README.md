@@ -1,6 +1,31 @@
-# Dream Mock Server
+<div align="center">
+  <img src="https://raw.githubusercontent.com/TrustBound/dream/main/ricky_and_lucy.png" alt="Ricky Moony and Lucy, a moon shaped mascot for Dream with the star shaped mascot for Gleam, each with cute cartoon eyes and a smile" width="200">
 
-A general-purpose HTTP mock server developed by Dream that provides both streaming and non-streaming endpoints for testing HTTP clients.
+<b>General-purpose HTTP mock server developed by Dream - provides both streaming and non-streaming endpoints for testing HTTP clients</b>
+
+</div>
+
+<br />
+
+<div align="center">
+  <a href="https://hex.pm/packages/dream_mock_server">
+    <img src="https://img.shields.io/hexpm/v/dream_mock_server" alt="Hex Package">
+  </a>
+  <a href="https://github.com/TrustBound/dream_mock_server/releases">
+    <img src="https://img.shields.io/github/v/release/TrustBound/dream_mock_server?label=Release" alt="Latest Release">
+  </a>
+  <a href="https://hexdocs.pm/dream_mock_server">
+    <img src="https://img.shields.io/badge/hex-docs-lightgreen.svg" alt="HexDocs">
+  </a>
+  <a href="https://github.com/TrustBound/dream_mock_server/actions/workflows/ci.yml?query=branch%3Amain">
+    <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/TrustBound/dream_mock_server/badges/coverage.json" alt="Coverage">
+  </a>
+  <a href="https://github.com/TrustBound/dream_mock_server/blob/main/LICENSE.md">
+    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License">
+  </a>
+</div>
+
+<br />
 
 **Current module version:** `1.1.1`
 
@@ -33,7 +58,7 @@ Then access endpoints at `http://localhost:3004/`
 
 Use in tests or other applications:
 
-#### Run a test body against the mock server <a href="https://github.com/TrustBound/dream/blob/dream_mock_server-1.1.1/modules/mock_server/test/snippets/programmatic_mode.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+#### Run a test body against the mock server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/programmatic_mode.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
 import dream_mock_server/server
@@ -60,7 +85,7 @@ pub fn with_mock_server(
 
 For proxy tests or any test that needs a **deterministic upstream** with specific status and body per path, start the server with a config list. The mock has no built-in provider logic (no OpenAI, Google, AWS, etc.); the caller supplies all path → (status, body) mappings. First matching route in the list wins.
 
-#### Start with one prefix route <a href="https://github.com/TrustBound/dream/blob/dream_mock_server-1.1.1/modules/mock_server/test/snippets/config_mode_prefix.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+#### Start with one prefix route <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/config_mode_prefix.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
 import dream/servers/mist/server as dream_server
@@ -100,7 +125,7 @@ pub fn start_chat_mock(
 - `method: None` matches any method.
 - No match returns `404` with body `"Not found"`.
 
-#### Exact + method-specific example <a href="https://github.com/TrustBound/dream/blob/dream_mock_server-1.1.1/modules/mock_server/test/snippets/config_mode_method_specific.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+#### Exact + method-specific example <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/config_mode_method_specific.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
 import dream/http/request.{Get, Post}
@@ -121,7 +146,7 @@ pub fn resource_routes() -> List(MockRoute) {
 
 If you mix broad prefixes and specific routes, put specific routes first:
 
-##### Good: specific route first <a href="https://github.com/TrustBound/dream/blob/dream_mock_server-1.1.1/modules/mock_server/test/snippets/config_mode_ordering.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+##### Good: specific route first <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/config_mode_ordering.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
 import dream_mock_server/config.{type MockRoute, Exact, MockRoute, Prefix}
@@ -147,7 +172,7 @@ pub fn api_routes() -> List(MockRoute) {
 
 **Returns JSON with request info**
 
-- Returns: `{"method": "GET", "url": "/get", "headers": []}`
+- Returns: `{"method": "GET", "url": "/get", "query": "<raw query string>", "headers": []}`
 - Status: 200 OK
 - Content-Type: `application/json`
 
@@ -293,13 +318,13 @@ pub fn api_routes() -> List(MockRoute) {
 
 ## Integration Tests
 
-Run Cucumber integration tests:
+The Gherkin scenarios in `test/features/mock_server.feature` run with
+[dream_test](https://hexdocs.pm/dream_test)'s Gherkin support, as part of
+`gleam test`. Each scenario starts the server on a free port, sends real HTTP
+requests to it and stops it. The step definitions are in
+`test/features/mock_server_feature.gleam`.
 
-```bash
-make test-integration
-```
-
-Tests verify:
+The scenarios verify:
 - All endpoints return correct status codes
 - Content format and structure
 - Chunk counts and timing
@@ -320,7 +345,7 @@ make run
 
 Start/stop programmatically for tests. `http_helper` and `port` are small test helpers in this module's `test/snippets/` folder.
 
-#### Start, use and stop the server <a href="https://github.com/TrustBound/dream/blob/dream_mock_server-1.1.1/modules/mock_server/test/snippets/programmatic_control.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+#### Start, use and stop the server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/programmatic_control.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
 import dream/servers/mist/server as dream_server
@@ -353,33 +378,43 @@ fn start_server(port: Int) -> Result(dream_server.ServerHandle, String) {
 
 Dream's HTTP client tests use the mock server in this way. This test starts the server on a free port from the operating system:
 
-#### A test against the mock server <a href="https://github.com/TrustBound/dream/blob/dream_mock_server-1.1.1/modules/mock_server/test/snippets/integration_testing.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+#### A test against the mock server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/integration_testing.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
 import dream_mock_server/server
+import dream_test/matchers.{be_equal, or_fail_with, should}
+import dream_test/types.{type TestSuite}
+import dream_test/unit.{describe, it}
 import gleam/int
-import gleeunit/should
 import snippets/http_helper
 import snippets/port
 
-pub fn fast_stream_sends_ten_chunks_test() {
-  let port = port.free_port()
-  let mock = server.start(port) |> should.be_ok()
+pub fn tests() -> TestSuite(Nil) {
+  describe("mock server", [
+    it("streams ten chunks from /stream/fast", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(mock) = server.start(port)
 
-  // Send the request to http://localhost:<port>
-  let response =
-    http_helper.get(
-      "http://localhost:" <> int.to_string(port) <> "/stream/fast",
-    )
+      // Act: send the request to http://localhost:<port>
+      let response =
+        http_helper.get(
+          "http://localhost:" <> int.to_string(port) <> "/stream/fast",
+        )
+      server.stop(mock)
 
-  server.stop(mock)
-  response
-  |> should.equal(
-    Ok(#(
-      200,
-      "Chunk 1\nChunk 2\nChunk 3\nChunk 4\nChunk 5\nChunk 6\nChunk 7\nChunk 8\nChunk 9\nChunk 10\n",
-    )),
-  )
+      // Assert
+      response
+      |> should
+      |> be_equal(
+        Ok(#(
+          200,
+          "Chunk 1\nChunk 2\nChunk 3\nChunk 4\nChunk 5\nChunk 6\nChunk 7\nChunk 8\nChunk 9\nChunk 10\n",
+        )),
+      )
+      |> or_fail_with("Expected ten chunks from /stream/fast")
+    }),
+  ])
 }
 ```
 
@@ -389,7 +424,7 @@ pub fn fast_stream_sends_ten_chunks_test() {
 
 Streaming endpoints use Dream's `response.stream_response()`:
 
-#### Fast stream controller <a href="https://github.com/TrustBound/dream/blob/dream_mock_server-1.1.1/modules/mock_server/test/snippets/streaming_technique.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+#### Fast stream controller <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/streaming_technique.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
 import dream/context.{type EmptyContext}
@@ -425,7 +460,7 @@ fn create_fast_chunk(number: Int) -> BitArray {
 
 Non-streaming endpoints use standard `json_response()` and `text_response()`:
 
-#### JSON controller <a href="https://github.com/TrustBound/dream/blob/dream_mock_server-1.1.1/modules/mock_server/test/snippets/non_streaming_technique.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+#### JSON controller <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/non_streaming_technique.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
 import dream/context.{type EmptyContext}
@@ -466,17 +501,22 @@ The `/stream/error` endpoint demonstrates mid-stream errors by returning a 500 s
 
 ## Architecture
 
-```
+```text
 src/
-├── main.gleam                    # Standalone entry point (port 3004)
-├── dream_mock_server/
-│   ├── server.gleam             # Programmatic start/stop functions
-│   ├── router.gleam             # Route definitions
-│   ├── controllers/
-│   │   ├── api_controller.gleam      # Non-streaming endpoints
-│   │   └── stream_controller.gleam   # Streaming endpoints
-│   └── views/
-│       └── index_view.gleam          # Info page HTML
+├── standalone.gleam                  # Standalone entry point (port 3004)
+├── compression_ffi.erl               # zlib compression
+└── dream_mock_server/
+    ├── server.gleam                  # Programmatic start/stop functions
+    ├── config.gleam                  # Config mode route types
+    ├── router.gleam                  # Route definitions
+    ├── compression.gleam             # Compression helpers
+    ├── controllers/
+    │   ├── api_controller.gleam      # Non-streaming endpoints
+    │   ├── config_controller.gleam   # Config mode handler
+    │   └── stream_controller.gleam   # Streaming endpoints
+    └── views/
+        ├── api_view.gleam            # JSON and text bodies
+        └── index_view.gleam          # Info page text
 ```
 
 ## Dependencies
@@ -494,12 +534,27 @@ under `test/snippets/` and executed by `test/snippets_test.gleam`.
 Run them with:
 
 ```bash
-cd modules/mock_server
 gleam test
 ```
 
 ## See Also
 
-- [Dream Streaming Guide](../../docs/guides/streaming.md)
-- [HTTP Client Module](../../modules/http_client/)
-- [Streaming Capabilities Example](../streaming_capabilities/)
+- [Dream Streaming Guide](https://github.com/TrustBound/dream/blob/release/3.0.0/docs/guides/streaming.md)
+- [Dream HTTP Client](https://github.com/TrustBound/dream_http_client)
+- [Streaming Capabilities Example](https://github.com/TrustBound/dream/tree/3.0.0/examples/streaming_capabilities)
+
+## Contributing
+
+See [CONTRIBUTING.md](https://github.com/TrustBound/dream_mock_server/blob/main/CONTRIBUTING.md).
+
+---
+
+## License
+
+MIT — see [LICENSE.md](https://github.com/TrustBound/dream_mock_server/blob/main/LICENSE.md)
+
+---
+
+<div align="center">
+  <sub>Built in Gleam, on the BEAM, by the <a href="https://github.com/trustbound/dream">Dream Team</a> ❤️</sub>
+</div>

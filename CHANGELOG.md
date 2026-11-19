@@ -5,7 +5,13 @@ All notable changes to `dream_mock_server` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 2.0.0 - Unreleased
+
+### Changed
+
+- Moved to its own repository
+- Needs dream 3.0.0 or later. A major version, because a project on dream 2 cannot use it.
+- The integration scenarios run on dream_test's Gherkin support inside `gleam test`. Elixir is no longer needed.
 
 ## 1.1.1 - 2026-03-03
 

@@ -1,7 +1,7 @@
 Feature: Mock Server
 
     Background:
-        Given the server is running on port 3004
+        Given the server is running on a free port
 
     Scenario: GET root endpoint returns info page
         When I send a GET request to "/"

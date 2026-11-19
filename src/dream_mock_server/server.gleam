@@ -1,89 +1,109 @@
-//// # Programmatic Server Control
+//// Starts and stops the mock server from Gleam code.
 ////
-//// This module provides functions to start and stop the mock server
-//// programmatically. This is useful for integration tests where you need
-//// complete control over the server lifecycle.
+//// Use it in integration tests that need full control of the server: start it
+//// on a port, send requests, then stop it. `start` serves the built-in
+//// endpoints. `start_with_config` serves only the routes that you give.
 ////
-//// ## Usage in Tests
+//// ## Run a test body against the mock server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/programmatic_mode.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 ////
 //// ```gleam
 //// import dream_mock_server/server
-//// import gleam/http/request
-//// import gleam/httpc
+//// import gleam/int
+//// import gleam/otp/actor
 ////
-//// pub fn my_streaming_test() {
-////   // Start the mock server
-////   let assert Ok(handle) = server.start(3004)
-////   
-////   // Make HTTP requests to localhost:3004
-////   let assert Ok(response) = 
-////     request.to("http://localhost:3004/stream/fast")
-////     |> httpc.send
-////   
-////   // Stop the server
-////   server.stop(handle)
+//// pub fn with_mock_server(
+////   port: Int,
+////   test_body: fn(String) -> outcome,
+//// ) -> Result(outcome, actor.StartError) {
+////   case server.start(port) {
+////     Ok(handle) -> {
+////       // Make HTTP requests to the base URL, http://localhost:<port>
+////       let outcome = test_body("http://localhost:" <> int.to_string(port))
+////       server.stop(handle)
+////       Ok(outcome)
+////     }
+////     Error(start_error) -> Error(start_error)
+////   }
 //// }
 //// ```
 ////
-//// ## Available Endpoints
+//// ## Built-in endpoints
 ////
-//// **Non-streaming endpoints:**
-//// - `GET /` - Info page listing all endpoints
-//// - `GET /get` - Returns JSON with request info
-//// - `POST /post` - Echoes request body as JSON
-//// - `PUT /put` - Echoes request body as JSON
-//// - `DELETE /delete` - Returns success response
-//// - `GET /json` - Returns simple JSON object
-//// - `GET /text` - Returns plain text
-//// - `GET /uuid` - Returns UUID-like string
-//// - `GET /status/:code` - Returns response with specified status code
-//// - `GET /large` - Returns ~1MB response (memory testing)
-//// - `GET /empty` - Returns empty response body
-//// - `GET /slow` - Returns response after 5s delay
+//// `GET /` returns a text page that lists every endpoint. The main ones:
 ////
-//// **Streaming endpoints:**
-//// - `GET /stream/fast` - 10 chunks @ 100ms intervals
-//// - `GET /stream/slow` - 5 chunks @ 2s intervals
-//// - `GET /stream/burst` - 7 chunks with variable timing
-//// - `GET /stream/error` - 3 chunks then 500 status
-//// - `GET /stream/huge` - 100 chunks @ 10ms intervals
-//// - `GET /stream/json` - JSON object stream
-//// - `GET /stream/binary` - Binary data stream
+//// - `GET /get`, `POST /post`, `PUT /put`, `PATCH /patch`, `DELETE /delete`:
+////   echo the request as JSON
+//// - `GET /json`, `GET /text`, `GET /uuid`, `GET /empty`, `GET /large`: fixed
+////   bodies
+//// - `GET /status/:code`: a response with any status code
+//// - `GET /slow`: a response after 5 seconds
+//// - `GET /gzip`, `GET /deflate` and other compression endpoints
+//// - `GET /redirect/301` and other redirect endpoints
+//// - `GET /stream/fast`, `GET /stream/slow`, `GET /stream/burst`,
+////   `GET /stream/error`, `GET /stream/drop`, `GET /stream/huge`,
+////   `GET /stream/json`, `GET /stream/binary`: streams with fixed chunks and
+////   timing
+////
+//// See `dream_mock_server/router.create_router` for the full list.
 
 import dream/servers/mist/server.{bind, context, listen_with_handle, router} as dream_server
 import dream_mock_server/config.{type MockRoute, MockConfigContext}
 import dream_mock_server/router.{create_config_router, create_router}
 import gleam/otp/actor
 
-/// Start the mock server on a specific port
+/// Starts the mock server with the built-in endpoints on a port.
 ///
-/// Returns a `ServerHandle` that can be used to stop the server later.
-/// The port must be explicitly provided - there is no default.
+/// The server listens on `localhost`. The function returns when the server
+/// accepts connections, so you can send requests at once.
 ///
-/// ## Example
+/// ## Parameters
 ///
-/// ```gleam
-/// import dream_mock_server/server
+/// - `port`: The TCP port to listen on. There is no default port.
 ///
-/// let assert Ok(handle) = server.start(3004)
-/// // ... make HTTP requests to localhost:3004 ...
-/// server.stop(handle)
-/// ```
+/// ## Returns
+///
+/// `Ok` with a `ServerHandle`. Give it to `stop` to stop the server.
 ///
 /// ## Errors
 ///
-/// Returns an error if the server fails to start, typically due to:
-/// - **Port already in use** - Another process is bound to the port
-/// - **Insufficient permissions** - Port < 1024 requires root on Unix systems
-/// - **System resource limits** - OS limits on open files/sockets reached
+/// `Error(actor.InitFailed(message))` when the server cannot listen on the
+/// port, for example when another process uses it. The message names the port.
 ///
-/// ### Port Conflicts
+/// ## Example
 ///
-/// If the port is already in use, the OTP supervisor will crash with
-/// `Eaddrinuse`. This is **expected OTP behavior** for startup errors - port
-/// conflicts are configuration problems that should fail loudly and immediately.
-/// Ensure ports are available before starting the server, or catch the supervisor
-/// crash at the deployment level if needed.
+/// ### Start, use and stop the server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/programmatic_control.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+///
+/// ```gleam
+/// import dream/servers/mist/server as dream_server
+/// import dream_mock_server/server
+/// import gleam/int
+/// import gleam/result
+/// import gleam/string
+/// import snippets/http_helper
+///
+/// pub fn fetch_text(port: Int) -> Result(#(Int, String), String) {
+///   // Start server
+///   use handle <- result.try(start_server(port))
+///
+///   // Use server
+///   let response =
+///     http_helper.get("http://localhost:" <> int.to_string(port) <> "/text")
+///
+///   // Stop server
+///   server.stop(handle)
+///   response
+/// }
+///
+/// fn start_server(port: Int) -> Result(dream_server.ServerHandle, String) {
+///   server.start(port)
+///   |> result.map_error(string.inspect)
+/// }
+/// ```
+///
+/// ## See Also
+///
+/// - `start_with_config` to serve only your own routes
+/// - `stop`
 pub fn start(port: Int) -> Result(dream_server.ServerHandle, actor.StartError) {
   dream_server.new()
   |> router(create_router())
@@ -91,42 +111,68 @@ pub fn start(port: Int) -> Result(dream_server.ServerHandle, actor.StartError) {
   |> listen_with_handle(port)
 }
 
-/// Start the mock server with caller-provided routes.
+/// Starts the mock server with your own routes on a port.
 ///
-/// In this mode, the server uses only the supplied config list and does not
-/// expose the built-in demo endpoints from `start(port)`.
+/// In this mode the server has no built-in endpoints: the routes in `config`
+/// are the only ones. Use it when a test needs a fixed upstream, for example
+/// a proxy test that needs a status and body for each path.
 ///
-/// ## Matching semantics
+/// The routes are checked in list order, and the first route that matches
+/// wins. A route matches when its path matches (`Exact` or `Prefix`) and its
+/// method is `None` or the method of the request. When no route matches, the
+/// response is status 404 with the body `Not found`.
 ///
-/// - Routes are evaluated in list order.
-/// - First matching route wins.
-/// - A route matches when both are true:
-///   - Path matches according to `path_match` (`Exact` or `Prefix`)
-///   - Method matches (`Some(method)`) or the route method is `None`
-/// - If no route matches, response is `404` with body `"Not found"`.
+/// ## Parameters
 ///
-/// Returns a `ServerHandle` that can be used to stop the server later.
+/// - `port`: The TCP port to listen on.
+/// - `config`: The routes, in the order to check them.
+///
+/// ## Returns
+///
+/// `Ok` with a `ServerHandle`. Give it to `stop` to stop the server.
+///
+/// ## Errors
+///
+/// `Error(actor.InitFailed(message))` when the server cannot listen on the
+/// port, for example when another process uses it.
 ///
 /// ## Example
 ///
+/// ### Start with one prefix route <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/config_mode_prefix.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+///
 /// ```gleam
-/// import dream_mock_server/config.{MockRoute, Prefix}
+/// import dream/servers/mist/server as dream_server
+/// import dream_mock_server/config.{type MockRoute, MockRoute, Prefix}
 /// import dream_mock_server/server
 /// import gleam/option.{None}
+/// import gleam/otp/actor
 ///
-/// let config = [
-///   MockRoute("/v1/chat/completions", Prefix, None, 200, "{\"ok\":true}"),
-/// ]
-/// let assert Ok(handle) = server.start_with_config(3004, config)
-/// // ... make requests to localhost:3004 ...
-/// server.stop(handle)
+/// /// One route: path /v1/chat/completions (prefix match), any method, 200 + JSON body
+/// pub fn chat_completion_routes() -> List(MockRoute) {
+///   [
+///     MockRoute(
+///       path: "/v1/chat/completions",
+///       path_match: Prefix,
+///       method: None,
+///       status: 200,
+///       body: "{\"choices\":[{\"message\":{\"content\":\"\"}}]}",
+///     ),
+///   ]
+/// }
+///
+/// pub fn start_chat_mock(
+///   port: Int,
+/// ) -> Result(dream_server.ServerHandle, actor.StartError) {
+///   // Point your proxy or client at http://localhost:<port>,
+///   // then call server.stop(handle).
+///   server.start_with_config(port, chat_completion_routes())
+/// }
 /// ```
 ///
-/// ## Typical use cases
+/// ## See Also
 ///
-/// - Deterministic proxy/adaptor tests
-/// - Verifying status and payload handling branches
-/// - Simulating external API behavior without provider-specific stubs
+/// - `dream_mock_server/config.MockRoute`
+/// - `start` for the built-in endpoints
 pub fn start_with_config(
   port: Int,
   config: List(MockRoute),
@@ -138,19 +184,48 @@ pub fn start_with_config(
   |> listen_with_handle(port)
 }
 
-/// Stop the mock server
+/// Stops a server that `start` or `start_with_config` started.
 ///
-/// Gracefully stops the server using the provided handle. This function
-/// is idempotent - calling it multiple times with the same handle is safe.
+/// The function returns when the server is down and its port is closed. It is
+/// safe to call it again with the same handle: a second call does nothing.
+///
+/// ## Parameters
+///
+/// - `handle`: The handle that `start` or `start_with_config` returned.
+///
+/// ## Returns
+///
+/// `Nil`.
 ///
 /// ## Example
 ///
-/// ```gleam
-/// import dream_mock_server/server
+/// ### Start, use and stop the server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/programmatic_control.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 ///
-/// let assert Ok(handle) = server.start(3004)
-/// // ... do work ...
-/// server.stop(handle)
+/// ```gleam
+/// import dream/servers/mist/server as dream_server
+/// import dream_mock_server/server
+/// import gleam/int
+/// import gleam/result
+/// import gleam/string
+/// import snippets/http_helper
+///
+/// pub fn fetch_text(port: Int) -> Result(#(Int, String), String) {
+///   // Start server
+///   use handle <- result.try(start_server(port))
+///
+///   // Use server
+///   let response =
+///     http_helper.get("http://localhost:" <> int.to_string(port) <> "/text")
+///
+///   // Stop server
+///   server.stop(handle)
+///   response
+/// }
+///
+/// fn start_server(port: Int) -> Result(dream_server.ServerHandle, String) {
+///   server.start(port)
+///   |> result.map_error(string.inspect)
+/// }
 /// ```
 pub fn stop(handle: dream_server.ServerHandle) -> Nil {
   dream_server.stop(handle)

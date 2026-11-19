@@ -1,8 +1,11 @@
-//// index_view.gleam - View for mock server documentation
-////
-//// Pure formatting functions - no Response objects.
+//// Formats the info page of `GET /`.
 
-/// Format index page with endpoint documentation
+/// Formats the info page of `GET /`.
+///
+/// ## Returns
+///
+/// Plain text that lists the endpoints of `router.create_router`, with what
+/// each one returns and what to use it for.
 pub fn format_index() -> String {
   "Mock Server - Testing & Demo Endpoints\n\n"
   <> "This server provides both streaming and non-streaming endpoints for testing HTTP clients.\n\n"

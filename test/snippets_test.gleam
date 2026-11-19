@@ -1,224 +1,353 @@
-//// Tests for the code blocks in the dream_mock_server README.
+//// Tests for the code blocks in the dream_mock_server README and hexdocs.
 ////
 //// Each test runs a snippet and checks the exact result.
 
 import dream/context.{EmptyContext}
-import dream/http/request.{Get, Http, Http1, Request, Text}
-import dream/http/response.{Stream, Text as TextBody}
+import dream/http/request.{Get}
+import dream/http/response.{json_response}
 import dream/router.{EmptyServices}
 import dream_mock_server/config.{Exact, MockRoute, Prefix}
 import dream_mock_server/server
+import dream_test/matchers.{be_equal, or_fail_with, should}
+import dream_test/types.{type TestSuite}
+import dream_test/unit.{describe, group, it}
+import fixtures/request as test_request
 import gleam/int
-import gleam/option.{None, Some}
-import gleam/yielder
-import gleeunit/should
+import gleam/option.{None}
+import matchers/read_stream_chunks.{read_stream_chunks}
 import snippets/config_mode_method_specific
 import snippets/config_mode_ordering
 import snippets/config_mode_prefix
 import snippets/http_helper
 import snippets/non_streaming_technique
+import snippets/own_config_server
+import snippets/own_server
 import snippets/port
 import snippets/programmatic_control
 import snippets/programmatic_mode
+import snippets/release_1_1_0_config_mode
 import snippets/streaming_technique
 
-fn base_url(port: Int) -> String {
-  "http://localhost:" <> int.to_string(port)
-}
-
-fn get_text(base: String) -> Result(#(Int, String), String) {
-  http_helper.get(base <> "/text")
-}
-
-fn create_request(path: String) -> request.Request {
-  Request(
-    method: Get,
-    protocol: Http,
-    version: Http1,
-    path: path,
-    query: "",
-    params: [],
-    host: None,
-    port: None,
-    remote_address: None,
-    body: Text(""),
-    headers: [],
-    cookies: [],
-    content_type: None,
-    content_length: None,
-  )
-}
-
-pub fn with_mock_server_runs_the_test_body_against_the_server_test() {
-  // Arrange
-  let port = port.free_port()
-
-  // Act
-  let outcome = programmatic_mode.with_mock_server(port, get_text)
-
-  // Assert
-  outcome |> should.equal(Ok(Ok(#(200, "Hello, World!"))))
-}
-
-pub fn chat_completion_routes_returns_one_prefix_route_test() {
-  // Act
-  let routes = config_mode_prefix.chat_completion_routes()
-
-  // Assert
-  routes
-  |> should.equal([
-    MockRoute(
-      path: "/v1/chat/completions",
-      path_match: Prefix,
-      method: None,
-      status: 200,
-      body: "{\"choices\":[{\"message\":{\"content\":\"\"}}]}",
-    ),
+pub fn tests() -> TestSuite(Nil) {
+  describe("snippets", [
+    programmatic_mode_tests(),
+    config_mode_prefix_tests(),
+    config_mode_method_specific_tests(),
+    config_mode_ordering_tests(),
+    programmatic_control_tests(),
+    streaming_technique_tests(),
+    non_streaming_technique_tests(),
+    own_server_tests(),
+    own_config_server_tests(),
+    release_1_1_0_config_mode_tests(),
   ])
 }
 
-pub fn start_chat_mock_matches_a_longer_path_by_prefix_test() {
-  // Arrange
-  let port = port.free_port()
-  let handle = config_mode_prefix.start_chat_mock(port) |> should.be_ok()
+fn programmatic_mode_tests() {
+  group("programmatic_mode.with_mock_server", [
+    it("runs the test body against the server", fn() {
+      // Arrange
+      let port = port.free_port()
 
-  // Act
-  let response =
-    http_helper.get(base_url(port) <> "/v1/chat/completions/stream")
-  server.stop(handle)
+      // Act
+      let outcome =
+        programmatic_mode.with_mock_server(port, fn(base_url) {
+          http_helper.get(base_url <> "/text")
+        })
 
-  // Assert
-  response
-  |> should.equal(
-    Ok(#(200, "{\"choices\":[{\"message\":{\"content\":\"\"}}]}")),
-  )
-}
-
-pub fn resource_routes_answers_get_with_200_test() {
-  // Arrange
-  let port = port.free_port()
-  let handle =
-    server.start_with_config(
-      port,
-      config_mode_method_specific.resource_routes(),
-    )
-    |> should.be_ok()
-
-  // Act
-  let response = http_helper.get(base_url(port) <> "/resource")
-  server.stop(handle)
-
-  // Assert
-  response |> should.equal(Ok(#(200, "{\"ok\":true}")))
-}
-
-pub fn resource_routes_answers_post_with_201_test() {
-  // Arrange
-  let port = port.free_port()
-  let handle =
-    server.start_with_config(
-      port,
-      config_mode_method_specific.resource_routes(),
-    )
-    |> should.be_ok()
-
-  // Act
-  let response = http_helper.post(base_url(port) <> "/resource", "")
-  server.stop(handle)
-
-  // Assert
-  response |> should.equal(Ok(#(201, "{\"created\":true}")))
-}
-
-pub fn api_routes_puts_the_exact_route_first_test() {
-  // Act
-  let routes = config_mode_ordering.api_routes()
-
-  // Assert
-  routes
-  |> should.equal([
-    MockRoute("/api/special", Exact, None, 200, "special"),
-    MockRoute("/api", Prefix, None, 200, "general"),
+      // Assert
+      outcome
+      |> should
+      |> be_equal(Ok(Ok(#(200, "Hello, World!"))))
+      |> or_fail_with("Expected the /text response from the test body")
+    }),
   ])
 }
 
-pub fn api_routes_sends_the_specific_path_to_the_exact_route_test() {
-  // Arrange
-  let port = port.free_port()
-  let handle =
-    server.start_with_config(port, config_mode_ordering.api_routes())
-    |> should.be_ok()
+fn config_mode_prefix_tests() {
+  group("config_mode_prefix", [
+    it("chat_completion_routes returns one prefix route", fn() {
+      // Act
+      let routes = config_mode_prefix.chat_completion_routes()
 
-  // Act
-  let response = http_helper.get(base_url(port) <> "/api/special")
-  server.stop(handle)
+      // Assert
+      routes
+      |> should
+      |> be_equal([
+        MockRoute(
+          path: "/v1/chat/completions",
+          path_match: Prefix,
+          method: None,
+          status: 200,
+          body: "{\"choices\":[{\"message\":{\"content\":\"\"}}]}",
+        ),
+      ])
+      |> or_fail_with("Expected one prefix route")
+    }),
+    it("start_chat_mock matches a longer path by prefix", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) = config_mode_prefix.start_chat_mock(port)
 
-  // Assert
-  response |> should.equal(Ok(#(200, "special")))
+      // Act
+      let response =
+        http_helper.get(
+          "http://localhost:"
+          <> int.to_string(port)
+          <> "/v1/chat/completions/stream",
+        )
+      server.stop(handle)
+
+      // Assert
+      response
+      |> should
+      |> be_equal(
+        Ok(#(200, "{\"choices\":[{\"message\":{\"content\":\"\"}}]}")),
+      )
+      |> or_fail_with("Expected the chat completion body")
+    }),
+  ])
 }
 
-pub fn api_routes_sends_other_paths_to_the_prefix_route_test() {
-  // Arrange
-  let port = port.free_port()
-  let handle =
-    server.start_with_config(port, config_mode_ordering.api_routes())
-    |> should.be_ok()
+fn config_mode_method_specific_tests() {
+  group("config_mode_method_specific.resource_routes", [
+    it("answers GET with 200", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) =
+        server.start_with_config(
+          port,
+          config_mode_method_specific.resource_routes(),
+        )
 
-  // Act
-  let response = http_helper.get(base_url(port) <> "/api/other")
-  server.stop(handle)
+      // Act
+      let response =
+        http_helper.get(
+          "http://localhost:" <> int.to_string(port) <> "/resource",
+        )
+      server.stop(handle)
 
-  // Assert
-  response |> should.equal(Ok(#(200, "general")))
+      // Assert
+      response
+      |> should
+      |> be_equal(Ok(#(200, "{\"ok\":true}")))
+      |> or_fail_with("Expected 200 for GET")
+    }),
+    it("answers POST with 201", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) =
+        server.start_with_config(
+          port,
+          config_mode_method_specific.resource_routes(),
+        )
+
+      // Act
+      let response =
+        http_helper.post(
+          "http://localhost:" <> int.to_string(port) <> "/resource",
+          "",
+        )
+      server.stop(handle)
+
+      // Assert
+      response
+      |> should
+      |> be_equal(Ok(#(201, "{\"created\":true}")))
+      |> or_fail_with("Expected 201 for POST")
+    }),
+  ])
 }
 
-pub fn fetch_text_starts_uses_and_stops_the_server_test() {
-  // Arrange
-  let port = port.free_port()
+fn config_mode_ordering_tests() {
+  group("config_mode_ordering.api_routes", [
+    it("puts the exact route first", fn() {
+      // Act
+      let routes = config_mode_ordering.api_routes()
 
-  // Act
-  let response = programmatic_control.fetch_text(port)
+      // Assert
+      routes
+      |> should
+      |> be_equal([
+        MockRoute("/api/special", Exact, None, 200, "special"),
+        MockRoute("/api", Prefix, None, 200, "general"),
+      ])
+      |> or_fail_with("Expected the exact route before the prefix route")
+    }),
+    it("sends the specific path to the exact route", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) =
+        server.start_with_config(port, config_mode_ordering.api_routes())
 
-  // Assert
-  response |> should.equal(Ok(#(200, "Hello, World!")))
+      // Act
+      let response =
+        http_helper.get(
+          "http://localhost:" <> int.to_string(port) <> "/api/special",
+        )
+      server.stop(handle)
+
+      // Assert
+      response
+      |> should
+      |> be_equal(Ok(#(200, "special")))
+      |> or_fail_with("Expected the exact route")
+    }),
+    it("sends other paths to the prefix route", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) =
+        server.start_with_config(port, config_mode_ordering.api_routes())
+
+      // Act
+      let response =
+        http_helper.get(
+          "http://localhost:" <> int.to_string(port) <> "/api/other",
+        )
+      server.stop(handle)
+
+      // Assert
+      response
+      |> should
+      |> be_equal(Ok(#(200, "general")))
+      |> or_fail_with("Expected the prefix route")
+    }),
+  ])
 }
 
-pub fn stream_fast_streams_ten_chunks_test() {
-  // Arrange
-  let request = create_request("/stream/fast")
+fn programmatic_control_tests() {
+  group("programmatic_control.fetch_text", [
+    it("starts, uses and stops the server", fn() {
+      // Arrange
+      let port = port.free_port()
 
-  // Act
-  let response =
-    streaming_technique.stream_fast(request, EmptyContext, EmptyServices)
+      // Act
+      let response = programmatic_control.fetch_text(port)
 
-  // Assert
-  let assert Stream(stream) = response.body
-  #(response.status, response.content_type, yielder.to_list(stream))
-  |> should.equal(
-    #(200, Some("text/plain"), [
-      <<"Chunk 1\n":utf8>>,
-      <<"Chunk 2\n":utf8>>,
-      <<"Chunk 3\n":utf8>>,
-      <<"Chunk 4\n":utf8>>,
-      <<"Chunk 5\n":utf8>>,
-      <<"Chunk 6\n":utf8>>,
-      <<"Chunk 7\n":utf8>>,
-      <<"Chunk 8\n":utf8>>,
-      <<"Chunk 9\n":utf8>>,
-      <<"Chunk 10\n":utf8>>,
-    ]),
-  )
+      // Assert
+      response
+      |> should
+      |> be_equal(Ok(#(200, "Hello, World!")))
+      |> or_fail_with("Expected the /text response")
+    }),
+  ])
 }
 
-pub fn get_returns_the_method_and_path_as_json_test() {
-  // Arrange
-  let request = create_request("/get")
+fn streaming_technique_tests() {
+  group("streaming_technique.stream_fast", [
+    it("streams ten chunks", fn() {
+      // Arrange
+      let request = test_request.create_request(Get, "/stream/fast")
 
-  // Act
-  let response =
-    non_streaming_technique.get(request, EmptyContext, EmptyServices)
+      // Act
+      let response =
+        streaming_technique.stream_fast(request, EmptyContext, EmptyServices)
 
-  // Assert
-  #(response.status, response.body)
-  |> should.equal(#(200, TextBody("{\"method\":\"GET\",\"url\":\"/get\"}")))
+      // Assert
+      response
+      |> should
+      |> read_stream_chunks
+      |> be_equal([
+        <<"Chunk 1\n":utf8>>,
+        <<"Chunk 2\n":utf8>>,
+        <<"Chunk 3\n":utf8>>,
+        <<"Chunk 4\n":utf8>>,
+        <<"Chunk 5\n":utf8>>,
+        <<"Chunk 6\n":utf8>>,
+        <<"Chunk 7\n":utf8>>,
+        <<"Chunk 8\n":utf8>>,
+        <<"Chunk 9\n":utf8>>,
+        <<"Chunk 10\n":utf8>>,
+      ])
+      |> or_fail_with("Expected ten chunks")
+    }),
+  ])
+}
+
+fn non_streaming_technique_tests() {
+  group("non_streaming_technique.get", [
+    it("returns the method and path as JSON", fn() {
+      // Arrange
+      let request = test_request.create_request(Get, "/get")
+
+      // Act
+      let response =
+        non_streaming_technique.get(request, EmptyContext, EmptyServices)
+
+      // Assert
+      response
+      |> should
+      |> be_equal(json_response(200, "{\"method\":\"GET\",\"url\":\"/get\"}"))
+      |> or_fail_with("Expected 200 with the method and path")
+    }),
+  ])
+}
+
+fn own_server_tests() {
+  group("own_server.start_own_server", [
+    it("serves the built-in endpoints", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) = own_server.start_own_server(port)
+
+      // Act
+      let response =
+        http_helper.get("http://localhost:" <> int.to_string(port) <> "/text")
+      server.stop(handle)
+
+      // Assert
+      response
+      |> should
+      |> be_equal(Ok(#(200, "Hello, World!")))
+      |> or_fail_with("Expected the /text response")
+    }),
+  ])
+}
+
+fn own_config_server_tests() {
+  group("own_config_server.start_own_config_server", [
+    it("serves the given routes", fn() {
+      // Arrange
+      let port = port.free_port()
+      let routes = [MockRoute("/x", Exact, None, 200, "x")]
+      let assert Ok(handle) =
+        own_config_server.start_own_config_server(port, routes)
+
+      // Act
+      let response =
+        http_helper.get("http://localhost:" <> int.to_string(port) <> "/x")
+      server.stop(handle)
+
+      // Assert
+      response
+      |> should
+      |> be_equal(Ok(#(200, "x")))
+      |> or_fail_with("Expected the configured response")
+    }),
+  ])
+}
+
+fn release_1_1_0_config_mode_tests() {
+  group("release_1_1_0_config_mode", [
+    it("start_chat_mock answers the chat completion path", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) = release_1_1_0_config_mode.start_chat_mock(port)
+
+      // Act
+      let response =
+        http_helper.get(
+          "http://localhost:" <> int.to_string(port) <> "/v1/chat/completions",
+        )
+      server.stop(handle)
+
+      // Assert
+      response
+      |> should
+      |> be_equal(
+        Ok(#(200, "{\"choices\":[{\"message\":{\"content\":\"\"}}]}")),
+      )
+      |> or_fail_with("Expected the chat completion body")
+    }),
+  ])
 }
