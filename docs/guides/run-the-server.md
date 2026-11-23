@@ -82,11 +82,11 @@ curl -N http://localhost:3004/stream/slow
 
 The lines `Chunk 1` to `Chunk 5` appear one at a time, 2 seconds apart. `/stream/fast` does the same with 10 lines, 100 ms apart.
 
-`GET /` answers with a text page of endpoints, but the page lists only some of them: the main echo and fixed-body endpoints, `GET /status/:code`, and the first seven streams. It also always says `Server: localhost:3004`, whatever port the server uses. The [Endpoint reference](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/endpoint-reference.md) lists every endpoint. In Gleam, `index_view.format_index()` from `dream_mock_server/views/index_view` returns the same page as `GET /`.
+`curl http://localhost:3004/` shows a text page that lists every built-in endpoint, with its method, its path and what it returns. The server makes this page from the same table that it uses to answer requests, so the page names each endpoint that answers. The [Endpoint reference](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/endpoint-reference.md) also gives the headers, bodies and timing. In Gleam, `index_view.format_index()` from `dream_mock_server/views/index_view` returns the same page as `GET /`.
 
 ## Step 3: Run your own stand-in
 
-Your app is easier to work on when the API it calls answers fast, the same way each time, and without a key. If you already have stand-in routes for your tests, as in [Stand in for a third-party API](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/stand-in-for-an-api.md), run them as a program too. This module starts a stand-in with the chat routes of that guide on port 4010, and keeps it running:
+Your app is easier to work on when the API it calls answers fast, the same way each time, and without a key. If you already have stand-in routes for your tests, as in [Stand in for a third-party API](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/stand-in-for-an-api.md), run them as a program too. This module starts a stand-in with the chat routes of that guide on port 4010, and keeps it running. The start is in its own function, `start`, so a test can call it too:
 
 ### Run an API stand-in until you stop it <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/guide_run_dev_stand_in.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
@@ -94,12 +94,19 @@ Your app is easier to work on when the API it calls answers fast, the same way e
 import dream_mock_server/server
 import gleam/erlang/process
 import gleam/io
+import gleam/otp/actor
 import gleam/string
 import snippets/guide_stand_in_routes
 
-/// Runs the chat API stand-in on http://localhost:4010 until you stop it.
+/// Starts the chat API stand-in on http://localhost:4010. Returns when the
+/// stand-in answers requests.
+pub fn start() -> Result(server.ServerHandle, actor.StartError) {
+  server.start_with_config(4010, guide_stand_in_routes.chat_routes())
+}
+
+/// Runs the chat API stand-in until you stop it.
 pub fn main() -> Nil {
-  case server.start_with_config(4010, guide_stand_in_routes.chat_routes()) {
+  case start() {
     Ok(_handle) -> {
       io.println("Chat API stand-in on http://localhost:4010")
       process.sleep_forever()
@@ -120,7 +127,7 @@ gleam run -m dev_chat_api
 
 Here's what it does:
 
-- `server.start_with_config` starts the stand-in, and returns at once with a handle.
+- `start` calls `server.start_with_config`, which returns a handle when the stand-in answers requests.
 - `process.sleep_forever()` keeps the process alive. This matters: the server stops when the process that started it exits, so a `main` that returns stops its own server.
 - If the port is taken, the program prints the start error and ends, instead of crashing.
 
@@ -167,27 +174,28 @@ The stand-in from Step 3 reports the same error with `Cannot start the stand-in:
 
 ## Test your code
 
-A program that runs forever still needs a test, so you know it starts and serves the right routes. This test runs `main` in its own process, asks the stand-in a question with the client from the stand-in guide, and then kills the process:
+A program that runs forever still needs a test, so you know it starts and serves the right routes. Don't test it by running `main` in another process and sending requests until one works. Until `start` returns, the server isn't ready, and a request in that time can get a closed connection, not a refused one. `gleam_httpc` raises an exception on a closed connection, so such a test crashes now and then. Test `start` instead. It returns when the stand-in answers, so the test sends one request and needs no wait:
 
 ### Test the program that runs the stand-in <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/guide_run_testing.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
+import dream_mock_server/server
 import dream_test/matchers.{be_equal, or_fail_with, should}
 import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, it}
-import gleam/erlang/process
 import snippets/guide_run_dev_stand_in
-import snippets/guide_stand_in_ask.{type ChatError, RequestFailed, ask}
+import snippets/guide_stand_in_ask.{ask}
 
 pub fn tests() -> TestSuite {
   describe("dev_chat_api", [
     it("answers on port 4010", fn() {
       // Arrange
-      let stand_in = process.spawn_unlinked(guide_run_dev_stand_in.main)
+      // start returns when the stand-in answers, so no wait is needed
+      let assert Ok(stand_in) = guide_run_dev_stand_in.start()
 
       // Act
-      let answer = ask_when_ready(20)
-      process.kill(stand_in)
+      let answer = ask("http://localhost:4010", "test-key", "Say hello")
+      server.stop(stand_in)
 
       // Assert
       answer
@@ -197,26 +205,15 @@ pub fn tests() -> TestSuite {
     }),
   ])
 }
-
-/// Asks the stand-in until it answers, at most `attempts` times, 50 ms
-/// apart. The program needs a moment to start the server.
-fn ask_when_ready(attempts: Int) -> Result(String, ChatError) {
-  let answer = ask("http://localhost:4010", "test-key", "Say hello")
-  case answer, attempts > 1 {
-    Error(RequestFailed(_)), True -> {
-      process.sleep(50)
-      ask_when_ready(attempts - 1)
-    }
-    _answer, _last_attempt -> answer
-  }
-}
 ```
 
-`ask_when_ready` is there because `main` runs in another process, and the server needs a moment to start. Until it listens, `ask` returns `RequestFailed`, so the helper waits 50 ms and asks again, at most 20 times. Any other result, good or bad, ends the wait, and the assertion checks it.
+`main` adds only the print and `process.sleep_forever()` to `start`, so this test covers what can go wrong in it: the port and the routes.
 
-`main` uses the fixed port 4010, so only one test may run it at a time. If another program uses port 4010 while the test runs, the test fails.
+The stand-in uses the fixed port 4010, so only one test may start it at a time. If another program uses port 4010 while the test runs, `start` returns an error and the `let assert` fails.
 
 ## Common pitfalls
+
+**Sending requests while the server starts.** *Symptom:* a test that starts the server in another process, then sends requests until one works, fails now and then with `socket_closed_remotely`. *Fix:* the port opens a moment before the server can answer, and a request in that moment gets a closed connection. Wait for `server.start` or `server.start_with_config` to return, as the test above does with `start`, before you send a request.
 
 **A `main` that returns.** *Symptom:* the program prints that the server listens, and then exits, and every request fails. *Fix:* the server stops when its process exits. End `main` with `process.sleep_forever()`.
 

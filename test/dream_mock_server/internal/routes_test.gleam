@@ -1,5 +1,8 @@
 import dream_mock_server/config.{Exact, MockRoute, Prefix}
 import dream_mock_server/internal/api_endpoints
+import dream_mock_server/internal/built_in_endpoints.{
+  type Segment, Literal, Parameter,
+}
 import dream_mock_server/internal/message.{
   type Request, type Response, json_response, text_response,
 }
@@ -7,6 +10,7 @@ import dream_mock_server/internal/routes.{
   type Mode, BuiltInEndpoints, ConfiguredRoutes,
 }
 import dream_mock_server/internal/stream_endpoints
+import dream_mock_server/views/index_view
 import dream_test/matchers.{be_equal, or_fail_with, should}
 import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
@@ -14,7 +18,10 @@ import fixtures/request as test_request
 import gleam/http.{
   Connect, Delete, Get, Head, Options, Other, Patch, Post, Put, Trace,
 }
+import gleam/list
 import gleam/option.{None, Some}
+import gleam/result
+import gleam/string
 
 /// Answers a request through `routes.answer`, with the body of the request
 /// as the body that the server reads.
@@ -25,7 +32,7 @@ fn answer_request(mode: Mode, request: Request) -> Response {
 pub fn tests() -> TestSuite {
   describe("dream_mock_server/internal/routes", [
     group("answer with the built-in endpoints", [
-      it("sends GET / to stream_endpoints.index", fn() {
+      it("sends GET / to routes.index", fn() {
         // Arrange
         let request = test_request.create_request(Get, "/")
 
@@ -35,8 +42,8 @@ pub fn tests() -> TestSuite {
         // Assert
         response
         |> should
-        |> be_equal(stream_endpoints.index(request))
-        |> or_fail_with("Expected the response of stream_endpoints.index")
+        |> be_equal(routes.index(request))
+        |> or_fail_with("Expected the response of routes.index")
       }),
       it("sends GET /get to api_endpoints.get", fn() {
         // Arrange
@@ -872,5 +879,58 @@ pub fn tests() -> TestSuite {
         |> or_fail_with("Expected DELETE")
       }),
     ]),
+    group("index", [
+      it("returns the page of index_view.format_index as text", fn() {
+        // Arrange
+        let request = test_request.create_request(Get, "/")
+
+        // Act
+        let response = routes.index(request)
+
+        // Assert
+        response
+        |> should
+        |> be_equal(text_response(200, index_view.format_index()))
+        |> or_fail_with("Expected 200 with the index page")
+      }),
+    ]),
+    group("find_endpoint with the built-in endpoint table", [
+      it("finds an endpoint for every entry of the table", fn() {
+        // Arrange
+        let table = built_in_endpoints.table()
+
+        // Act
+        let unanswered_lines =
+          table
+          |> list.filter(fn(built_in_endpoint) {
+            routes.find_endpoint(
+              BuiltInEndpoints,
+              built_in_endpoint.method,
+              request_path(built_in_endpoint.pattern),
+            )
+            |> result.is_error
+          })
+          |> list.map(built_in_endpoints.request_line)
+
+        // Assert
+        unanswered_lines
+        |> should
+        |> be_equal([])
+        |> or_fail_with("Expected an endpoint for every entry of the table")
+      }),
+    ]),
   ])
+}
+
+/// A request path that matches a path pattern: `200` for each parameter.
+fn request_path(pattern: List(Segment)) -> String {
+  pattern
+  |> list.map(fn(segment) {
+    case segment {
+      Literal(name) -> name
+      Parameter(_name) -> "200"
+    }
+  })
+  |> string.join("/")
+  |> string.append("/", _)
 }

@@ -1,4 +1,4 @@
-//// The info page and the streaming endpoints.
+//// The streaming endpoints.
 ////
 //// `dream_mock_server/internal/routes` sends requests to these functions.
 //// Each streaming endpoint returns a `Stream` body that makes its chunks with
@@ -8,33 +8,14 @@
 
 import dream_mock_server/compression
 import dream_mock_server/internal/message.{
-  type Request, type Response, Response, Stream, stream_response, text_response,
+  type Request, type Response, Response, Stream, stream_response,
 }
-import dream_mock_server/views/index_view
 import gleam/bit_array
 import gleam/erlang/process
 import gleam/int
 import gleam/json
 import gleam/list
 import gleam/yielder
-
-/// Handles `GET /`: returns a text page that lists the endpoints.
-///
-/// ## Parameters
-///
-/// - `_request`: Not used.
-///
-/// ## Returns
-///
-/// Status 200 with a `text/plain; charset=utf-8` body: the page of
-/// `index_view.format_index`.
-///
-/// ## See Also
-///
-/// - `dream_mock_server/views/index_view.format_index`
-pub fn index(_request: Request) -> Response {
-  text_response(200, index_view.format_index())
-}
 
 /// Handles `GET /stream/fast`: streams 10 chunks, one each 100 ms.
 ///

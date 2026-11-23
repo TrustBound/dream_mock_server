@@ -62,7 +62,12 @@ pub fn tests() -> TestSuite {
       let started = process.new_subject()
       process.spawn(fn() { process.send(started, server.start(19_834)) })
       let assert Ok(Ok(_handle)) = process.receive(started, 5000)
-      process.sleep(200)
+      // The server shuts down after the starting process exits. A request
+      // during the shutdown can get a closed connection, which makes
+      // gleam_httpc raise, so wait with a client that returns every
+      // failure as an Error.
+      let assert Error("econnrefused") =
+        get_until_refused("http://localhost:19834/text", 100)
 
       // Act
       let greeting = fetch_greeting("http://localhost:19834")
@@ -100,4 +105,20 @@ pub fn tests() -> TestSuite {
       |> or_fail_with("Expected the IPv6 request to fail")
     }),
   ])
+}
+
+/// Sends GET requests until the connection is refused, at most `attempts`
+/// times, 50 ms apart. Returns the last result.
+fn get_until_refused(
+  url: String,
+  attempts: Int,
+) -> Result(#(Int, String), String) {
+  case http.get(url), attempts > 1 {
+    Error("econnrefused"), _more_attempts -> Error("econnrefused")
+    _still_up, True -> {
+      process.sleep(50)
+      get_until_refused(url, attempts - 1)
+    }
+    last_result, False -> last_result
+  }
 }

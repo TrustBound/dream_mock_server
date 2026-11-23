@@ -29,7 +29,8 @@
 ////
 //// ## Built-in endpoints
 ////
-//// `GET /` returns a text page that lists every endpoint. The main ones:
+//// `GET /` returns a text page that lists every built-in endpoint, with its
+//// method, its path and what it returns. The main ones:
 ////
 //// - `GET /get`, `POST /post`, `PUT /put`, `PATCH /patch`, `DELETE /delete`:
 ////   echo the request as JSON

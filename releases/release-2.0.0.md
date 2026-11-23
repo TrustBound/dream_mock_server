@@ -4,7 +4,7 @@
 
 This release builds the mock server directly on `dream_http_server`. It no longer depends on the Dream web framework. A project on any Dream version, or on no Dream at all, can use it to test an HTTP client.
 
-It is a major version because the handle of a running server and the method of a route have new types, and the functions that gave Dream routers to your code are removed. Read the Migration Guide before you upgrade. Every endpoint answers as before. The package also moved to its own repository.
+It is a major version because the handle of a running server and the method of a route have new types, and the functions that gave Dream routers to your code are removed. Read the Migration Guide before you upgrade. Every endpoint except the info page of `GET /` answers as before. The package also moved to its own repository.
 
 ## Key Highlights
 
@@ -12,7 +12,7 @@ It is a major version because the handle of a running server and the method of a
 - **`ServerHandle` is the mock server's own type (breaking)**: `start`, `start_with_config` and `stop` work as before
 - **`MockRoute.method` is the standard method type (breaking)**: import the methods from `gleam/http`
 - **Routers and controllers are no longer public (breaking)**: start the server with `server.start` or `server.start_with_config`
-- **Every endpoint answers as before**: the same status, headers, body bytes, chunks and timing
+- **Every endpoint answers as before, except `GET /`**: the same status, headers, body bytes, chunks and timing
 - **Its own repository**: `dream_mock_server` now lives at [TrustBound/dream_mock_server](https://github.com/TrustBound/dream_mock_server), with its own version and its own releases
 
 ## What's New
@@ -55,9 +55,9 @@ fn start_server(port: Int) -> Result(server.ServerHandle, String) {
 }
 ```
 
-### Every Endpoint Answers as Before
+### Every Endpoint Except `GET /` Answers as Before
 
-No endpoint changed. To prove that, 55 requests were recorded on the old code, one or more for each endpoint. Each one gets the same raw HTTP answer on the new code.
+No other endpoint changed. To prove that, 55 requests were recorded on the old code, one or more for each endpoint. Each one gets the same raw HTTP answer on the new code, except `GET /`. Its info page is fixed, as [Bug Fixes](#bug-fixes) tells.
 
 ### Integration Scenarios Run in `gleam test`
 
@@ -71,6 +71,12 @@ The integration scenarios run on dream_test's Gherkin support inside `gleam test
 
 The package has four guides in [`docs/guides/`](https://github.com/TrustBound/dream_mock_server/tree/main/docs/guides), each built around a task: getting started, testing how a client handles failures, standing in for a third-party API, and running the server while you develop. An endpoint reference lists every built-in endpoint with its status, headers, body and timing. Every code block in the guides is a tested snippet. The README is short and links to them, and HexDocs shows them.
 
+## Bug Fixes
+
+- **The info page of `GET /` lists every built-in endpoint**: before, `index_view.format_index()` listed 15 of the 40 built-in endpoints. Now the page and the route match use one table of the built-in endpoints, so the page cannot leave out an endpoint that answers.
+- **The info page names no fixed port**: before, it always said `Server: localhost:3004`, also on other ports. The line `Content-Type: All endpoints return appropriate MIME types` is also gone.
+- **The info page tells the order of `/stream/error` correctly**: status 500 comes first, then 3 chunks. Before, the page said "3 chunks then 500 status".
+
 ## Known Limits
 
 - CONNECT, TRACE and methods that are not standard are handled as GET, as before. A `MockRoute` with one of those methods can never match
@@ -78,8 +84,8 @@ The package has four guides in [`docs/guides/`](https://github.com/TrustBound/dr
 
 ## Testing
 
-- 299 tests run, 0 failed, in about 50 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (306 of 306 lines)
-- Each of 55 recorded requests gets the same raw HTTP answer as before the move to `dream_http_server`
+- 304 tests run, 0 failed, in about 65 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (330 of 330 lines)
+- Each of 55 recorded requests gets the same raw HTTP answer as before the move to `dream_http_server`, except `GET /`, whose info page is fixed
 
 ## Upgrading
 

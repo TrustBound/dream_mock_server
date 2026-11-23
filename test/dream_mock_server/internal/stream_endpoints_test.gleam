@@ -1,6 +1,4 @@
-import dream_mock_server/internal/message.{text_response}
 import dream_mock_server/internal/stream_endpoints
-import dream_mock_server/views/index_view
 import dream_test/matchers.{be_equal, or_fail_with, should}
 import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
@@ -15,7 +13,6 @@ import matchers/take_stream_chunks.{take_stream_chunks}
 
 pub fn tests() -> TestSuite {
   describe("dream_mock_server/internal/stream_endpoints", [
-    index_tests(),
     stream_fast_tests(),
     stream_slow_tests(),
     stream_burst_tests(),
@@ -27,24 +24,6 @@ pub fn tests() -> TestSuite {
     stream_gzip_tests(),
     stream_deflate_tests(),
     stream_unknown_encoding_tests(),
-  ])
-}
-
-fn index_tests() {
-  group("index", [
-    it("returns the endpoint documentation page as text", fn() {
-      // Arrange
-      let request = test_request.create_request(Get, "/")
-
-      // Act
-      let response = stream_endpoints.index(request)
-
-      // Assert
-      response
-      |> should
-      |> be_equal(text_response(200, index_view.format_index()))
-      |> or_fail_with("Expected 200 with the index page")
-    }),
   ])
 }
 

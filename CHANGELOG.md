@@ -13,10 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Built directly on `dream_http_server`. It no longer depends on the Dream web framework, so a project on any Dream version, or on no Dream at all, can use it.
 - `server.ServerHandle` is now the mock server's own opaque type. `start`, `start_with_config` and `stop` work as before: `stop` returns when the server is down and its port is closed, and a second call does nothing.
 - `MockRoute.method` is now an `Option` of `gleam/http.Method`. Import the methods from `gleam/http`, for example `import gleam/http.{Get, Post}`.
-- Every endpoint answers as before, with the same status, headers, body bytes, chunks and timing.
+- Every endpoint except `GET /` answers as before, with the same status, headers, body bytes, chunks and timing.
 - The integration scenarios run on dream_test's Gherkin support inside `gleam test`. Elixir is no longer needed.
 - The package now has four guides in `docs/guides/`, each built around a task: getting started, testing how a client handles failures, standing in for a third-party API, and running the server while you develop. An endpoint reference lists every built-in endpoint. Every code block in the guides is a tested snippet. The README is short and links to them, and HexDocs shows them.
 - Every public function has a tested example in its doc comment, 19 functions in all.
+
+### Fixed
+
+- The info page of `GET /` (`index_view.format_index()`) now lists all 40 built-in endpoints. Before, it listed 15 of them. The page and the route match now use one table of the built-in endpoints, so the page cannot leave out an endpoint that answers. The page no longer says `Server: localhost:3004`, which was wrong on every other port, and it no longer has the line `Content-Type: All endpoints return appropriate MIME types`. It now says that `/stream/error` sends status 500 first and then its 3 chunks. Before, it said "3 chunks then 500 status".
 
 ### Removed
 
@@ -26,8 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Testing
 
-- 299 tests run, 0 failed, in about 50 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (306 of 306 lines).
-- Each of 55 recorded requests, one or more for each endpoint, gets the same raw HTTP answer as before the move to `dream_http_server`.
+- 304 tests run, 0 failed, in about 65 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (330 of 330 lines).
+- Each of 55 recorded requests, one or more for each endpoint, gets the same raw HTTP answer as before the move to `dream_http_server`, except `GET /`. The body of `GET /` is now the fixed info page, and its `content-length` changes with it.
 
 ## [1.1.1] - 2026-03-03
 

@@ -6,12 +6,19 @@
 import dream_mock_server/server
 import gleam/erlang/process
 import gleam/io
+import gleam/otp/actor
 import gleam/string
 import snippets/guide_stand_in_routes
 
-/// Runs the chat API stand-in on http://localhost:4010 until you stop it.
+/// Starts the chat API stand-in on http://localhost:4010. Returns when the
+/// stand-in answers requests.
+pub fn start() -> Result(server.ServerHandle, actor.StartError) {
+  server.start_with_config(4010, guide_stand_in_routes.chat_routes())
+}
+
+/// Runs the chat API stand-in until you stop it.
 pub fn main() -> Nil {
-  case server.start_with_config(4010, guide_stand_in_routes.chat_routes()) {
+  case start() {
     Ok(_handle) -> {
       io.println("Chat API stand-in on http://localhost:4010")
       process.sleep_forever()

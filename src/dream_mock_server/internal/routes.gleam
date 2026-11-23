@@ -21,50 +21,11 @@
 ////
 //// ## Built-in endpoints
 ////
-//// **Info page:**
-//// - `GET /` - Text page that lists the endpoints
-////
-//// **Request echo and fixed bodies:**
-//// - `GET /get` - Path and query as JSON
-//// - `POST /post` - Request body as JSON (status 201)
-//// - `PUT /put` - Request body as JSON
-//// - `PATCH /patch` - Request body as JSON
-//// - `DELETE /delete` - Path as JSON
-//// - `POST /content-type` - The request `Content-Type` as text
-//// - `GET /json` - A fixed JSON object
-//// - `GET /text` - `Hello, World!` as text
-//// - `GET /uuid` - A fixed UUID as JSON
-//// - `GET /status/:code` - A response with status `code`
-//// - `GET /large` - A body of about 1.1 MB
-//// - `GET /empty` - An empty body
-//// - `GET /slow` - A response after 5 seconds
-////
-//// **Compression:**
-//// - `GET /gzip` - gzip body
-//// - `GET /deflate` - deflate body
-//// - `GET /identity` - `Content-Encoding: identity`
-//// - `GET /unknown-encoding` - `Content-Encoding: br`, not compressed
-//// - `GET /corrupted-gzip` - `Content-Encoding: gzip` with bytes that are not gzip
-//// - `GET /echo-accept-encoding` - The request `Accept-Encoding` as text
-//// - `GET /non-utf8-error` - Status 400 with a body that is not UTF-8
-////
-//// **Redirects:**
-//// - `GET /redirect/301`, `/302`, `/303`, `/307`, `/308` - Redirect to `/text`
-//// - `GET /redirect/chain` - `/redirect/chain/2`, then `/text`
-//// - `GET /redirect/absolute` - Redirect with a full URL
-////
-//// **Streaming:**
-//// - `GET /stream/fast` - 10 chunks, one each 100 ms
-//// - `GET /stream/slow` - 5 chunks, one each 2 s
-//// - `GET /stream/burst` - 7 chunks with fixed, different delays
-//// - `GET /stream/error` - 3 chunks with status 500
-//// - `GET /stream/drop` - 2 chunks, then the connection closes
-//// - `GET /stream/huge` - 100 chunks, one each 10 ms
-//// - `GET /stream/json` - 5 JSON objects, one on each line
-//// - `GET /stream/binary` - 256 chunks of binary data
-//// - `GET /stream/gzip` - One gzip stream in chunks
-//// - `GET /stream/deflate` - One deflate stream in chunks
-//// - `GET /stream/unknown-encoding` - Chunks with `Content-Encoding: br`
+//// The built-in endpoints are the entries of
+//// `dream_mock_server/internal/built_in_endpoints.table`. The match checks
+//// them in the order of that table. `GET /` answers with the page of
+//// `dream_mock_server/views/index_view.format_index`, which lists the same
+//// entries.
 ////
 //// ## Config mode
 ////
@@ -73,14 +34,16 @@
 //// every path. Other methods get the 404 `Route not found` response.
 
 import dream_mock_server/config.{type MockRoute}
-import dream_mock_server/internal/api_endpoints
+import dream_mock_server/internal/built_in_endpoints.{
+  type Handler, type Segment, Answer, ListEndpoints, Literal, Parameter,
+}
 import dream_mock_server/internal/config_endpoint
 import dream_mock_server/internal/message.{
   type Request, type RequestHead, type Response, Bytes, RequestHead, Response,
   text_response,
 }
 import dream_mock_server/internal/path
-import dream_mock_server/internal/stream_endpoints
+import dream_mock_server/views/index_view
 import gleam/http.{type Method}
 import gleam/list
 import gleam/result
@@ -90,7 +53,7 @@ pub const max_body_size = 10_000_000
 
 /// Which endpoints a server has.
 pub type Mode {
-  /// The built-in endpoints that the module documentation lists.
+  /// The built-in endpoints of `built_in_endpoints.table`.
   BuiltInEndpoints
   /// Only the routes of config mode, checked in list order.
   ConfiguredRoutes(routes: List(MockRoute))
@@ -99,15 +62,6 @@ pub type Mode {
 /// A function that answers a request.
 pub type Endpoint =
   fn(Request) -> Response
-
-type Segment {
-  Literal(String)
-  Parameter
-}
-
-type Route {
-  Route(method: Method, pattern: List(Segment), endpoint: Endpoint)
-}
 
 /// Answers a request.
 ///
@@ -190,11 +144,39 @@ fn find_built_in_endpoint(
   request_path: String,
 ) -> Result(Endpoint, Nil) {
   let segments = path.segments(request_path)
-  built_in_routes()
-  |> list.find(fn(route) {
-    route.method == method && pattern_matches(route.pattern, segments)
+  built_in_endpoints.table()
+  |> list.find(fn(built_in_endpoint) {
+    built_in_endpoint.method == method
+    && pattern_matches(built_in_endpoint.pattern, segments)
   })
-  |> result.map(fn(route) { route.endpoint })
+  |> result.map(fn(built_in_endpoint) {
+    handler_endpoint(built_in_endpoint.handler)
+  })
+}
+
+fn handler_endpoint(handler: Handler) -> Endpoint {
+  case handler {
+    ListEndpoints -> index
+    Answer(endpoint) -> endpoint
+  }
+}
+
+/// Handles `GET /`: returns a text page that lists every built-in endpoint.
+///
+/// ## Parameters
+///
+/// - `_request`: Not used.
+///
+/// ## Returns
+///
+/// Status 200 with a `text/plain; charset=utf-8` body: the page of
+/// `index_view.format_index`.
+///
+/// ## See Also
+///
+/// - `dream_mock_server/views/index_view.format_index`
+pub fn index(_request: Request) -> Response {
+  text_response(200, index_view.format_index())
 }
 
 fn find_config_endpoint(
@@ -214,7 +196,7 @@ fn pattern_matches(pattern: List(Segment), segments: List(String)) -> Bool {
     [Literal(name), ..pattern_rest], [segment, ..segments_rest] ->
       literal_matches(name, segment)
       && pattern_matches(pattern_rest, segments_rest)
-    [Parameter, ..pattern_rest], [_segment, ..segments_rest] ->
+    [Parameter(_name), ..pattern_rest], [_segment, ..segments_rest] ->
       pattern_matches(pattern_rest, segments_rest)
     _pattern, _segments -> False
   }
@@ -240,139 +222,4 @@ pub fn route_not_found_response() -> Response {
 /// Status 400 with no headers and an empty body.
 pub fn bad_request_response() -> Response {
   Response(status: 400, headers: [], body: Bytes(<<>>))
-}
-
-fn built_in_routes() -> List(Route) {
-  [
-    // Info page
-    Route(http.Get, [], stream_endpoints.index),
-    // Non-streaming endpoints
-    Route(http.Get, [Literal("get")], api_endpoints.get),
-    Route(http.Post, [Literal("post")], api_endpoints.post),
-    Route(http.Post, [Literal("content-type")], api_endpoints.content_type),
-    Route(http.Put, [Literal("put")], api_endpoints.put),
-    Route(http.Patch, [Literal("patch")], api_endpoints.patch),
-    Route(http.Delete, [Literal("delete")], api_endpoints.delete),
-    Route(http.Get, [Literal("json")], api_endpoints.json_endpoint),
-    Route(http.Get, [Literal("text")], api_endpoints.text),
-    Route(http.Get, [Literal("uuid")], api_endpoints.uuid),
-    Route(http.Get, [Literal("status"), Parameter], api_endpoints.status),
-    Route(http.Get, [Literal("large")], api_endpoints.large),
-    Route(http.Get, [Literal("empty")], api_endpoints.empty),
-    Route(http.Get, [Literal("slow")], api_endpoints.slow),
-    // Compression endpoints
-    Route(http.Get, [Literal("gzip")], api_endpoints.gzip),
-    Route(http.Get, [Literal("deflate")], api_endpoints.deflate),
-    Route(http.Get, [Literal("identity")], api_endpoints.identity),
-    Route(
-      http.Get,
-      [Literal("unknown-encoding")],
-      api_endpoints.unknown_encoding,
-    ),
-    Route(http.Get, [Literal("corrupted-gzip")], api_endpoints.corrupted_gzip),
-    Route(
-      http.Get,
-      [Literal("echo-accept-encoding")],
-      api_endpoints.echo_accept_encoding,
-    ),
-    Route(http.Get, [Literal("non-utf8-error")], api_endpoints.non_utf8_error),
-    // Redirect endpoints
-    Route(
-      http.Get,
-      [Literal("redirect"), Literal("301")],
-      api_endpoints.redirect_301,
-    ),
-    Route(
-      http.Get,
-      [Literal("redirect"), Literal("302")],
-      api_endpoints.redirect_302,
-    ),
-    Route(
-      http.Get,
-      [Literal("redirect"), Literal("303")],
-      api_endpoints.redirect_303,
-    ),
-    Route(
-      http.Get,
-      [Literal("redirect"), Literal("307")],
-      api_endpoints.redirect_307,
-    ),
-    Route(
-      http.Get,
-      [Literal("redirect"), Literal("308")],
-      api_endpoints.redirect_308,
-    ),
-    Route(
-      http.Get,
-      [Literal("redirect"), Literal("chain")],
-      api_endpoints.redirect_chain,
-    ),
-    Route(
-      http.Get,
-      [Literal("redirect"), Literal("chain"), Literal("2")],
-      api_endpoints.redirect_chain_2,
-    ),
-    Route(
-      http.Get,
-      [Literal("redirect"), Literal("absolute")],
-      api_endpoints.redirect_absolute,
-    ),
-    // Streaming endpoints
-    Route(
-      http.Get,
-      [Literal("stream"), Literal("fast")],
-      stream_endpoints.stream_fast,
-    ),
-    Route(
-      http.Get,
-      [Literal("stream"), Literal("slow")],
-      stream_endpoints.stream_slow,
-    ),
-    Route(
-      http.Get,
-      [Literal("stream"), Literal("burst")],
-      stream_endpoints.stream_burst,
-    ),
-    Route(
-      http.Get,
-      [Literal("stream"), Literal("error")],
-      stream_endpoints.stream_error,
-    ),
-    Route(
-      http.Get,
-      [Literal("stream"), Literal("huge")],
-      stream_endpoints.stream_huge,
-    ),
-    Route(
-      http.Get,
-      [Literal("stream"), Literal("drop")],
-      stream_endpoints.stream_drop,
-    ),
-    Route(
-      http.Get,
-      [Literal("stream"), Literal("json")],
-      stream_endpoints.stream_json,
-    ),
-    Route(
-      http.Get,
-      [Literal("stream"), Literal("binary")],
-      stream_endpoints.stream_binary,
-    ),
-    // Compressed streaming endpoints
-    Route(
-      http.Get,
-      [Literal("stream"), Literal("gzip")],
-      stream_endpoints.stream_gzip,
-    ),
-    Route(
-      http.Get,
-      [Literal("stream"), Literal("deflate")],
-      stream_endpoints.stream_deflate,
-    ),
-    Route(
-      http.Get,
-      [Literal("stream"), Literal("unknown-encoding")],
-      stream_endpoints.stream_unknown_encoding,
-    ),
-  ]
 }

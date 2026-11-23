@@ -5,6 +5,7 @@
 import config_mode_test
 import dream_mock_server/compression_test
 import dream_mock_server/internal/api_endpoints_test
+import dream_mock_server/internal/built_in_endpoints_test
 import dream_mock_server/internal/config_endpoint_test
 import dream_mock_server/internal/message_test
 import dream_mock_server/internal/mist_adapter_test
@@ -36,6 +37,7 @@ pub fn main() {
     path_test.tests(),
     message_test.tests(),
     api_endpoints_test.tests(),
+    built_in_endpoints_test.tests(),
     config_endpoint_test.tests(),
     stream_endpoints_test.tests(),
     routes_test.tests(),

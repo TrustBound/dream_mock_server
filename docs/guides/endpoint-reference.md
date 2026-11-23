@@ -29,7 +29,7 @@ In the tables, `text/plain; charset=utf-8` and `application/json; charset=utf-8`
 
 | Request | Status | Content-Type | Body |
 |:---|:---|:---|:---|
-| `GET /` | 200 | `text/plain; charset=utf-8` | A text page of endpoints, the result of `index_view.format_index()`. It lists only part of the endpoints on this page, and always names `localhost:3004` as the server. |
+| `GET /` | 200 | `text/plain; charset=utf-8` | A text page that lists every endpoint on this page under the headings `Info Page`, `Non-Streaming Endpoints`, `Compression Endpoints`, `Redirect Endpoints` and `Streaming Endpoints`. Each endpoint has its method and path on one line, and what it returns on the next line. The page names no port. It is the result of `index_view.format_index()`. |
 
 ## Echo endpoints
 
