@@ -186,9 +186,11 @@ pub fn broken_routes() -> List(MockRoute) {
 
 `chat_routes()` has one route: a POST to exactly `/v1/chat/completions` answers status 200 with a body in the shape of the real API. Start a server with it, and point `ask` at the server:
 
+### The reply of the stand-in <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_stand_in_ask.txt"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
 ```text
-server.start_with_config(19821, chat_routes())
-ask("http://localhost:19821", "test-key", "Say hello")
+server.start_with_config(19876, chat_routes())
+ask("http://localhost:19876", "test-key", "Say hello")
   -> Ok("Hello from the stand-in.")
 ```
 
@@ -205,10 +207,12 @@ Copy a real answer of the API into `body`, from its documentation or from a requ
 
 The routes of a server are fixed when it starts. To test a failure, start a stand-in whose routes fail. `rate_limited_routes()` and `broken_routes()` in the module above answer the same path with a 429 and with a body that isn't JSON. A route with status 500 works the same way:
 
+### The errors of the failing routes <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_stand_in_failing_routes.txt"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
 ```text
-ask against rate_limited_routes()   -> Error(RateLimited)
-ask against broken_routes()         -> Error(BadReply("upstream connect error"))
-ask against a 500 route             -> Error(ApiError(status: 500, body: "{\"error\":{\"message\":\"Internal error\"}}"))
+ask against rate_limited_routes()  -> Error(RateLimited)
+ask against broken_routes()        -> Error(BadReply("upstream connect error"))
+ask against a 500 route            -> Error(ApiError(status: 500, body: "{\"error\":{\"message\":\"Internal error\"}}"))
 ```
 
 One stand-in for each scenario keeps each test simple: the test names the scenario in its routes, and nothing else can change the answer. The tests start each stand-in on its own port, so they can run at the same time.
@@ -254,6 +258,8 @@ pub fn api_routes() -> List(MockRoute) {
 ```
 
 With these routes:
+
+### The answers of the routes <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_stand_in_route_order.txt"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```text
 GET /api/special          -> 200 "special"

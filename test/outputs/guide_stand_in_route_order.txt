@@ -1,0 +1,4 @@
+GET /api/special          -> 200 "special"
+GET /api/users            -> 200 "general"
+GET /apiary               -> 200 "general"
+GET /api/special?debug=1  -> 200 "special"

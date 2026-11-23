@@ -1,0 +1,1 @@
+{"id":"chatcmpl-1","object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","content":"Hello from the stand-in."},"finish_reason":"stop"}]}

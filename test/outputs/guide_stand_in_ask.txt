@@ -1,0 +1,3 @@
+server.start_with_config(19876, chat_routes())
+ask("http://localhost:19876", "test-key", "Say hello")
+  -> Ok("Hello from the stand-in.")

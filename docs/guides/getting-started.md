@@ -41,6 +41,8 @@ gleam add --dev gleam_httpc
 
 The test modules use [dream_test](https://github.com/TrustBound/dream_test). It isn't on Hex yet, so add it from GitHub, with the commit that this package tests with:
 
+### The dev dependency on dream_test <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/gleam.toml#L34-L35"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
 ```toml
 [dev-dependencies]
 dream_test = { git = "https://github.com/TrustBound/dream_test.git", ref = "1639959578a14ae3577f8e3ae5cac058f933aa53" }
@@ -140,6 +142,8 @@ Here's what each part does:
 
 Pass `fetch_greeting` from Step 1 as the test body:
 
+### The greeting from the mock server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_getting_started_with_mock_server.txt"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
 ```text
 with_mock_server(19831, fetch_greeting)
   -> Ok(Ok("Hello, World!"))
@@ -194,6 +198,8 @@ pub fn note_json(text: String) -> Json {
 
 When it sends `note_json("Buy milk")` to `/post`, it returns `Ok(#(201, body))`, and `body` is this JSON text:
 
+### The echo of the note <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_getting_started_note_echo.txt"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
 ```text
 {"method":"POST","url":"/post","data":"{\"text\":\"Buy milk\"}"}
 ```
@@ -211,6 +217,8 @@ Sent to `/content-type`, the same function returns `Ok(#(200, "application/json"
 
 `server.start` fails when something already listens on the port: another test, a server you forgot to stop, or a program of your own. It returns an error, and `with_mock_server` passes it on. With another server on port 19832, the call from Step 2 returns:
 
+### The error of a port in use <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_getting_started_port_in_use.txt"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
 ```text
 with_mock_server(19832, fetch_greeting)
   -> Error(InitFailed("Port 19832 already in use on localhost. Stop the process using that port or choose a different one."))
@@ -219,6 +227,8 @@ with_mock_server(19832, fetch_greeting)
 The message names the port, so a failing test tells you which one to free. `server.start_with_config` fails the same way.
 
 The opposite case is your code, not the server: a request to a port where nothing listens. That's what your code sees when the real service is down, and you can test it without a server at all. `fetch_greeting("http://localhost:19833")` returns:
+
+### The error with no server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_getting_started_no_server.txt"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```text
 Error(RequestFailed("FailedToConnect(Posix(\"econnrefused\"), Posix(\"econnrefused\"))"))

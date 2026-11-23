@@ -31,7 +31,7 @@ Dream Mock Server is part of the Dream family. It follows Dream's coding, testin
 2. **Run tests:**
    ```bash
    make test                # All tests, with line coverage
-   make check               # Format check, build, tests and docs build
+   make check               # Format check, build, tests, docs code blocks, docs build and the servers of the guides
    ```
 
 3. **Make your changes:**
@@ -165,7 +165,7 @@ All contributions must include tests:
 - **Unit tests** - Fast, isolated, deterministic
 - **Server tests** - Start the server on a free port and send real requests
 - **Gherkin scenarios** - `test/features/mock_server.feature`, with step definitions in `test/features/mock_server_feature.gleam`; dream_test runs them inside `gleam test`. Each scenario starts the server on a free port, sends real HTTP requests to it and stops it. The scenarios check the status codes, the content format, the chunk counts and timing, the error handling and the JSON of every endpoint
-- **Guide tests** - each code block in the guides is a snippet in `test/snippets/`, and `test/guides/` asserts the exact results that the guides show
+- **Guide tests** - each Gleam block in the guides is a snippet in `test/snippets/`. Each output block is a file in `test/outputs/`, and `test/guides/` compares it with the real output. Each command block is a part of a script in `scripts/`: the tests run the `curl` scripts against servers that they start, and `scripts/run-server-smoke.sh` starts and stops each server that a guide runs until you stop it
 - **100% coverage** - For all code in `src/`; `gleam test` fails below it
 
 See the [Testing Guide](https://github.com/TrustBound/dream/blob/release/3.0.0/docs/contributing/testing.md) for details.
@@ -177,7 +177,7 @@ Update documentation for:
 - API changes (update all references)
 - Breaking changes (migration guide)
 
-Every code block in the README and in the HexDocs comes from a tested snippet in `test/snippets/`. See [Code Blocks in READMEs and Guides](https://github.com/TrustBound/dream/blob/release/3.0.0/docs/contributing/contributing.md#code-blocks-in-readmes-and-guides).
+Every code block in the docs is proven: a Gleam block comes from a tested snippet in `test/snippets/`, an output block from an output file in `test/outputs/` that a test compares with the real output, and a command block from a script in `scripts/` that the tests or CI run. `make check-snippets` checks each one. See [Code Blocks in READMEs and Guides](https://github.com/TrustBound/dream/blob/release/3.0.0/docs/contributing/contributing.md#code-blocks-in-readmes-and-guides).
 
 ## Review Process
 

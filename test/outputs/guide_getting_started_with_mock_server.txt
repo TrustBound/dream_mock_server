@@ -1,0 +1,2 @@
+with_mock_server(19831, fetch_greeting)
+  -> Ok(Ok("Hello, World!"))

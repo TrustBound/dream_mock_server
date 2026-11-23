@@ -28,12 +28,14 @@ gleam_otp = ">= 1.0.0 and < 2.0.0"
 gleam_stdlib = ">= 1.0.0 and < 2.0.0"
 gleam_yielder = ">= 1.1.0 and < 2.0.0"
 
+# dream_test and dream_snippets are not on Hex yet. Each is switched to a Hex
+# version range once it is published. The guide "Getting started" shows the
+# dream_test line.
 [dev-dependencies]
-# Switched to a Hex version range once it is published.
 dream_test = { git = "https://github.com/TrustBound/dream_test.git", ref = "1639959578a14ae3577f8e3ae5cac058f933aa53" }
-# Switched to a Hex version range once it is published.
-dream_snippets = { git = "https://github.com/TrustBound/dream_snippets.git", ref = "f116b072699ec33315980418036d962e22fab872" }
+dream_snippets = { git = "https://github.com/TrustBound/dream_snippets.git", ref = "6c2bf3e4d19bf023b09822def9cf04c72037b7e4" }
 gleam_httpc = ">= 5.0.0 and < 6.0.0"
 
 [tools.dream_snippets]
 checked_from_version = "2.0.0"
+tested_files = ["test", ".github", "scripts", "gleam.toml"]

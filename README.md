@@ -81,7 +81,7 @@ pub fn with_mock_server(
 
 See [CONTRIBUTING.md](https://github.com/TrustBound/dream_mock_server/blob/main/CONTRIBUTING.md).
 
-Run `make check-snippets` to check that each code block in the docs matches a tested snippet file.
+Run `make check-snippets` to check that each code block in the docs is proven: a Gleam block is a copy of a tested snippet file, an output block is a copy of an output file that a test compares with the real output, and a command block is a copy of lines of a script that the tests or CI run.
 
 ---
 

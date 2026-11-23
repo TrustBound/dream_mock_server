@@ -1,6 +1,7 @@
 //// Tests for the getting started guide (docs/guides/getting-started.md).
-//// Each test runs a snippet against a local mock server and asserts the
-//// exact value that the guide shows.
+//// Each test runs a snippet against a local mock server. A test of an
+//// output block compares the real value with the output file that the
+//// guide shows.
 
 import dream_mock_server/server
 import dream_mock_server/views/api_view
@@ -8,10 +9,12 @@ import dream_test/matchers.{be_equal, or_fail_with, should}
 import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, it}
 import fixtures/http
+import fixtures/output_file
 import gleam/erlang/process
-import gleam/otp/actor
 import gleam/result
+import gleam/string
 import snippets/guide_getting_started_greeting.{RequestFailed, fetch_greeting}
+import snippets/guide_getting_started_post_json.{note_json, post_json}
 import snippets/programmatic_mode
 
 const refused =
@@ -24,10 +27,14 @@ pub fn tests() -> TestSuite {
       let outcome = programmatic_mode.with_mock_server(19_831, fetch_greeting)
 
       // Assert
-      outcome
+      Ok(
+        "with_mock_server(19831, fetch_greeting)\n  -> "
+        <> string.inspect(outcome)
+        <> "\n",
+      )
       |> should
-      |> be_equal(Ok(Ok("Hello, World!")))
-      |> or_fail_with("Expected the greeting from the mock server")
+      |> be_equal(output_file.read("guide_getting_started_with_mock_server"))
+      |> or_fail_with("Expected the greeting of the output file")
     }),
     it("step 2: with_mock_server reports a port that is in use", fn() {
       // Arrange
@@ -38,24 +45,24 @@ pub fn tests() -> TestSuite {
       server.stop(first)
 
       // Assert
-      outcome
-      |> should
-      |> be_equal(
-        Error(actor.InitFailed(
-          "Port 19832 already in use on localhost. Stop the process using that port or choose a different one.",
-        )),
+      Ok(
+        "with_mock_server(19832, fetch_greeting)\n  -> "
+        <> string.inspect(outcome)
+        <> "\n",
       )
-      |> or_fail_with("Expected the port in use error")
+      |> should
+      |> be_equal(output_file.read("guide_getting_started_port_in_use"))
+      |> or_fail_with("Expected the port in use error of the output file")
     }),
     it("failures: fetch_greeting with no server reports the refusal", fn() {
       // Act
       let greeting = fetch_greeting("http://localhost:19833")
 
       // Assert
-      greeting
+      Ok(string.inspect(greeting) <> "\n")
       |> should
-      |> be_equal(Error(RequestFailed(refused)))
-      |> or_fail_with("Expected the connection to be refused")
+      |> be_equal(output_file.read("guide_getting_started_no_server"))
+      |> or_fail_with("Expected the refusal of the output file")
     }),
     it("pitfalls: the server stops when its starting process exits", fn() {
       // Arrange
@@ -78,17 +85,34 @@ pub fn tests() -> TestSuite {
       |> be_equal(Error(RequestFailed(refused)))
       |> or_fail_with("Expected the server to stop with its process")
     }),
-    it("step 3: the echo of the note is the JSON the guide shows", fn() {
+    it("step 3: post_json gets the echo of the note", fn() {
+      // Arrange
+      let assert Ok(mock) = server.start(19_875)
+
+      // Act
+      let posted =
+        post_json("http://localhost:19875/post", note_json("Buy milk"))
+      server.stop(mock)
+
+      // Assert
+      posted
+      |> result.map(fn(answer) { #(answer.0, answer.1 <> "\n") })
+      |> should
+      |> be_equal(
+        output_file.read("guide_getting_started_note_echo")
+        |> result.map(fn(body) { #(201, body) }),
+      )
+      |> or_fail_with("Expected status 201 and the echo of the output file")
+    }),
+    it("step 3: api_view builds the echo of the note", fn() {
       // Act
       let body = api_view.post_to_json("/post", "{\"text\":\"Buy milk\"}")
 
       // Assert
-      body
+      Ok(body <> "\n")
       |> should
-      |> be_equal(
-        "{\"method\":\"POST\",\"url\":\"/post\",\"data\":\"{\\\"text\\\":\\\"Buy milk\\\"}\"}",
-      )
-      |> or_fail_with("Expected the echo body of the guide")
+      |> be_equal(output_file.read("guide_getting_started_note_echo"))
+      |> or_fail_with("Expected the echo body of the output file")
     }),
     it("pitfalls: the server does not listen on the IPv6 loopback", fn() {
       // Arrange

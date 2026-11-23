@@ -30,7 +30,7 @@ In this guide you'll:
 
 For Step 1 and Step 2 you need a clone of this repository, and Gleam and Erlang:
 
-```sh
+```sh illustration
 git clone https://github.com/TrustBound/dream_mock_server.git
 cd dream_mock_server
 ```
@@ -56,6 +56,8 @@ The examples use `curl`. Any HTTP client works.
 
 From the root of the clone:
 
+### Run the built-in server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/scripts/run-server-smoke.sh#L48"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
 ```sh
 make run
 ```
@@ -64,23 +66,53 @@ make run
 
 ## Step 2: Look at what the endpoints send
 
-In a second terminal, send some requests:
+In a second terminal, send some requests. The bodies don't end with a line break, so `-w '\n'` tells `curl` to print one after each body:
+
+### Send requests to the built-in server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/scripts/try-the-built-in-server.sh#L9-L11"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```sh
-curl -i http://localhost:3004/json
-curl "http://localhost:3004/get?page=2"
-curl -X POST -d 'hello' http://localhost:3004/post
+curl -i -w '\n' http://localhost:3004/json
+curl -w '\n' "http://localhost:3004/get?page=2"
+curl -w '\n' -X POST -d 'hello' http://localhost:3004/post
 ```
 
-The first one shows the status line, the headers and the body `{"message":"Hello, World!","success":true}`. The second echoes the path and the query: `{"method":"GET","url":"/get","query":"page=2","headers":[]}`. The third echoes the body with status 201: `{"method":"POST","url":"/post","data":"hello"}`. A path with no endpoint, such as `/nope`, gets status 404 with the body `Route not found`.
+The first one shows the status line, the headers and the body. The `date` header holds the time of your request, so yours differs. The second echoes the path and the query, and the third echoes the body with status 201:
+
+### What the requests print <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_run_the_server_built_in.txt#L1-L9"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
+```text
+HTTP/1.1 200 OK
+content-type: application/json; charset=utf-8
+content-length: 42
+date: Mon, 23 Nov 2026 19:43:13 GMT
+connection: keep-alive
+
+{"message":"Hello, World!","success":true}
+{"method":"GET","url":"/get","query":"page=2","headers":[]}
+{"method":"POST","url":"/post","data":"hello"}
+```
+
+A path with no endpoint, such as `/nope`, gets status 404 with the body `Route not found`.
 
 To see a stream arrive, turn off the output buffer of `curl` with `-N`:
+
+### Watch a stream arrive <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/scripts/try-the-built-in-server.sh#L12"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```sh
 curl -N http://localhost:3004/stream/slow
 ```
 
-The lines `Chunk 1` to `Chunk 5` appear one at a time, 2 seconds apart. `/stream/fast` does the same with 10 lines, 100 ms apart.
+### What the stream prints <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_run_the_server_built_in.txt#L10-L14"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
+```text
+Chunk 1
+Chunk 2
+Chunk 3
+Chunk 4
+Chunk 5
+```
+
+The lines appear one at a time, 2 seconds apart. `/stream/fast` does the same with 10 lines, 100 ms apart.
 
 `curl http://localhost:3004/` shows a text page that lists every built-in endpoint, with its method, its path and what it returns. The server makes this page from the same table that it uses to answer requests, so the page names each endpoint that answers. The [Endpoint reference](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/endpoint-reference.md) also gives the headers, bodies and timing. In Gleam, `index_view.format_index()` from `dream_mock_server/views/index_view` returns the same page as `GET /`.
 
@@ -121,6 +153,8 @@ pub fn main() -> Nil {
 
 Put the module in your project's `test/` directory, for example as `test/dev_chat_api.gleam`. Code in `test/` can use dev dependencies, and it never ships with your package. Then run it by its module name:
 
+### Run the stand-in <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/scripts/run-server-smoke.sh#L62"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
 ```sh
 gleam run -m dev_chat_api
 ```
@@ -133,11 +167,21 @@ Here's what it does:
 
 Now point your app's configuration at `http://localhost:4010` and run it. Or try the stand-in by hand:
 
+### Send a request to the stand-in <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/scripts/try-the-stand-in.sh#L8"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
 ```sh
-curl -X POST http://localhost:4010/v1/chat/completions
+curl -w '\n' -X POST http://localhost:4010/v1/chat/completions
 ```
 
-It answers status 200 with the reply from the routes, which holds `Hello from the stand-in.`. A GET to the same path gets `404` with `Not found`, because the route only matches POST.
+It answers status 200 with the body of the route, which holds `Hello from the stand-in.`:
+
+### What the stand-in answers <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_run_the_server_stand_in.txt"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
+```text
+{"id":"chatcmpl-1","object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","content":"Hello from the stand-in."},"finish_reason":"stop"}]}
+```
+
+A GET to the same path gets `404` with `Not found`, because the route only matches POST.
 
 ## Step 4: Start the built-in server from Gleam
 
@@ -163,6 +207,8 @@ For anything other than port 3004, call `server.start(port)` and keep the proces
 ## When the port is in use
 
 Only one program can listen on a port. When another program already uses port 3004, `make run` stops with a panic, and the message names the port:
+
+### The message of a port in use <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_run_the_server_port_in_use.txt"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```text
 The mock server cannot start on port 3004: InitFailed("Port 3004 already in use on localhost. Stop the process using that port or choose a different one.")
@@ -208,6 +254,8 @@ pub fn tests() -> TestSuite {
 ```
 
 `main` adds only the print and `process.sleep_forever()` to `start`, so this test covers what can go wrong in it: the port and the routes.
+
+The `curl` commands of Step 2 and Step 3 get the same kind of test in this package: the test starts the server with `server.start(3004)` or with `start`, runs the commands, and compares what they print with the output that this guide shows. A test that sends requests with `curl` must also wait for the start to return.
 
 The stand-in uses the fixed port 4010, so only one test may start it at a time. If another program uses port 4010 while the test runs, `start` returns an error and the `let assert` fails.
 

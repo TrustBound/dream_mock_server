@@ -69,7 +69,7 @@ The integration scenarios run on dream_test's Gherkin support inside `gleam test
 
 ### Guides
 
-The package has four guides in [`docs/guides/`](https://github.com/TrustBound/dream_mock_server/tree/main/docs/guides), each built around a task: getting started, testing how a client handles failures, standing in for a third-party API, and running the server while you develop. An endpoint reference lists every built-in endpoint with its status, headers, body and timing. Every code block in the guides is a tested snippet. The README is short and links to them, and HexDocs shows them.
+The package has four guides in [`docs/guides/`](https://github.com/TrustBound/dream_mock_server/tree/main/docs/guides), each built around a task: getting started, testing how a client handles failures, standing in for a third-party API, and running the server while you develop. An endpoint reference lists every built-in endpoint with its status, headers, body and timing. Every code block in the guides, except the `git clone` command, is proven: each Gleam block is a tested snippet, each output block is a file that a test compares with the real output, and each command block is a part of a script that the tests or CI run. The README is short and links to them, and HexDocs shows them.
 
 ## Bug Fixes
 
@@ -85,7 +85,8 @@ The package has four guides in [`docs/guides/`](https://github.com/TrustBound/dr
 
 ## Testing
 
-- 320 tests run, 0 failed, in about 65 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (326 of 326 lines)
+- 316 tests run, 0 failed, in about 60 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (326 of 326 lines)
+- `scripts/run-server-smoke.sh` starts and stops each command of the guide "Run the server while you develop" that serves until you stop it, in about 2 seconds
 - Each of 55 recorded requests gets the same raw HTTP answer as before the move to `dream_http_server`, except `GET /`, whose info page is fixed
 
 ## Upgrading

@@ -1,0 +1,3 @@
+ask against rate_limited_routes()  -> Error(RateLimited)
+ask against broken_routes()        -> Error(BadReply("upstream connect error"))
+ask against a 500 route            -> Error(ApiError(status: 500, body: "{\"error\":{\"message\":\"Internal error\"}}"))

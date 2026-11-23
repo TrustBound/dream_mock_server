@@ -1,0 +1,2 @@
+fetch_text(".../slow", 1000)         -> Error(TimedOut)
+fetch_text(".../stream/slow", 5000)  -> Error(TimedOut)

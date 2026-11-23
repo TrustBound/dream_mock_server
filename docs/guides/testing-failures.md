@@ -138,11 +138,13 @@ Here's what each part does:
 
 Now point it at the status endpoints. `GET /status/:code` answers with any status you put in the path:
 
+### The results of the status endpoints <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_failures_status_endpoints.txt"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
 ```text
-fetch_text(".../text", 2000)           -> Ok("Hello, World!")
-fetch_text(".../status/503", 2000)     -> Error(Refused(status: 503, body: <<"{\"status\":503}">>))
-fetch_text(".../status/404", 2000)     -> Error(Refused(status: 404, body: <<"{\"status\":404}">>))
-fetch_text(".../redirect/301", 2000)   -> Error(Refused(status: 301, body: <<>>))
+fetch_text(".../text", 2000)          -> Ok("Hello, World!")
+fetch_text(".../status/503", 2000)    -> Error(Refused(status: 503, body: <<"{\"status\":503}">>))
+fetch_text(".../status/404", 2000)    -> Error(Refused(status: 404, body: <<"{\"status\":404}">>))
+fetch_text(".../redirect/301", 2000)  -> Error(Refused(status: 301, body: <<>>))
 ```
 
 The last line is worth a second look. `gleam_httpc` doesn't follow redirects unless you turn that on with `httpc.follow_redirects(True)`, so a 301 reaches your code as a status outside 2xx. If your client should follow redirects, `/redirect/301` through `/redirect/308` each lead to `/text`, and `/redirect/chain` takes two steps to get there. A client that follows them gets `Hello, World!`.
@@ -150,6 +152,8 @@ The last line is worth a second look. `gleam_httpc` doesn't follow redirects unl
 ## Step 2: Keep an error body that isn't text
 
 Error pages come from proxies, load balancers and crashed servers, not only from the API you call. Some of them aren't UTF-8 text. `GET /non-utf8-error` answers status 400 with the text `Error: ` and then four bytes that aren't valid UTF-8:
+
+### The result of a body that isn't text <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_failures_non_utf8_error.txt"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```text
 fetch_text(".../non-utf8-error", 2000)
@@ -162,9 +166,11 @@ You get the status and every byte of the body. That's why `fetch_text` reads the
 
 A server that never answers is worse than one that fails, because your code waits for it. The fix is a timeout, and the test needs a server that's slower than the timeout. `GET /slow` waits 5 seconds before it answers:
 
+### The results of the slow endpoints <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_failures_slow_endpoints.txt"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
 ```text
-fetch_text(".../slow", 1000)           -> Error(TimedOut)
-fetch_text(".../stream/slow", 5000)    -> Error(TimedOut)
+fetch_text(".../slow", 1000)         -> Error(TimedOut)
+fetch_text(".../stream/slow", 5000)  -> Error(TimedOut)
 ```
 
 The first line is the plain case: the answer would come after 5 seconds, and the client stops waiting after 1.
@@ -177,8 +183,10 @@ Keep the timeouts in tests short. The test of `/slow` with a 1000 ms timeout tak
 
 When the service is down, or the address is wrong, there's no server to answer. You don't need an endpoint for that. Start and stop a server, so you know the port is free, and send the request there:
 
+### The result with no server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_failures_no_server.txt"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
 ```text
-fetch_text("http://localhost:19814/text", 2000)   -> Error(Unreachable)
+fetch_text("http://localhost:19849/text", 2000)  -> Error(Unreachable)
 ```
 
 `Unreachable` comes from the `FailedToConnect` error of `gleam_httpc`. Your code can retry it later, because the request never reached a server.
@@ -186,6 +194,8 @@ fetch_text("http://localhost:19814/text", 2000)   -> Error(Unreachable)
 ## Step 5: Handle content encodings
 
 A server can compress the body and say so in the `Content-Encoding` header. Your client either decompresses it, or must refuse it. Treating gzip bytes as text gives you garbage, not an error. `fetch_text` refuses every encoding except `identity`, and the endpoints check that:
+
+### The results of the encoding endpoints <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_failures_encodings.txt"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```text
 fetch_text(".../identity", 2000)          -> Ok("Hello, World!")
@@ -246,6 +256,8 @@ The streaming endpoints send their body in chunks, with pauses between them. Two
 - `GET /stream/drop` sends status 200 and the lines `Drop chunk 1` and `Drop chunk 2`, and then closes the connection before the body ends. A client that streams gets both lines, and then must report a broken connection, not a short success.
 
 A client that reads the whole body sees `/stream/error` as a normal error status:
+
+### The result of a stream with an error status <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/outputs/guide_failures_stream_error.txt"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```text
 fetch_text(".../stream/error", 2000)

@@ -1,7 +1,9 @@
 //// Tests of the standalone entry point. It listens on the fixed port 3004.
 ////
-//// The test runs the `standalone_main` snippet. It is the only test that
-//// uses port 3004, so the parallel tests cannot collide on the port.
+//// The test runs the `standalone_main` snippet. It is the only test of this
+//// suite that uses port 3004. The suites run one after the other, so the
+//// tests of `guides/run_the_server_test` on the same port can't collide
+//// with it.
 
 import dream_test/matchers.{be_equal, or_fail_with, should}
 import dream_test/suite.{type TestSuite}

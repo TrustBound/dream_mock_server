@@ -23,6 +23,7 @@ import features/mock_server_feature
 import guides/failures_test
 import guides/getting_started_test
 import guides/readers_tests_test
+import guides/run_the_server_test
 import guides/stand_in_test
 import server_test
 import snippets/integration_testing
@@ -56,6 +57,7 @@ pub fn main() {
     readers_tests_test.failures(),
     readers_tests_test.stand_in(),
     readers_tests_test.run_the_server(),
+    run_the_server_test.tests(),
   ])
   // The streaming endpoints sleep between chunks: /stream/slow takes about
   // ten seconds to read.

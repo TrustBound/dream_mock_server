@@ -1,29 +1,54 @@
 //// Tests for the guide "Stand in for a third-party API"
 //// (docs/guides/stand-in-for-an-api.md). Each test starts a config mode
-//// server and asserts the exact answer that the guide shows.
+//// server. A test of an output block compares the real answers with the
+//// output file that the guide shows; the other tests assert the exact
+//// answer that the guide's text gives.
 
 import dream_mock_server/config.{type MockRoute}
 import dream_mock_server/server
 import dream_test/matchers.{be_equal, or_fail_with, should}
 import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, it}
+import fixtures/output_file
 import gleam/http.{type Method}
 import gleam/http/request
 import gleam/httpc
 import gleam/int
+import gleam/list
 import gleam/option
 import gleam/result
 import gleam/string
 import snippets/config_mode_method_specific
 import snippets/config_mode_ordering
-import snippets/guide_stand_in_ask.{ApiError, ask}
+import snippets/guide_stand_in_ask.{type ChatError, ApiError, ask}
 import snippets/guide_stand_in_routes
 
 pub fn tests() -> TestSuite {
   describe("stand-in guide", [
-    it("step 3: a 500 route gives ApiError", fn() {
+    it("step 2: ask gets the reply of the chat routes", fn() {
       // Arrange
-      let routes = [
+      let assert Ok(stand_in) =
+        server.start_with_config(19_876, guide_stand_in_routes.chat_routes())
+
+      // Act
+      let answer = ask("http://localhost:19876", "test-key", "Say hello")
+      server.stop(stand_in)
+
+      // Assert
+      Ok(
+        "server.start_with_config(19876, chat_routes())\n"
+        <> "ask(\"http://localhost:19876\", \"test-key\", \"Say hello\")\n"
+        <> "  -> "
+        <> answer_literal(answer)
+        <> "\n",
+      )
+      |> should
+      |> be_equal(output_file.read("guide_stand_in_ask"))
+      |> or_fail_with("Expected the reply of the output file")
+    }),
+    it("step 3: the failing routes give the errors of the guide", fn() {
+      // Arrange
+      let server_error_routes = [
         config.MockRoute(
           path: "/v1/chat/completions",
           path_match: config.Exact,
@@ -32,22 +57,28 @@ pub fn tests() -> TestSuite {
           body: "{\"error\":{\"message\":\"Internal error\"}}",
         ),
       ]
-      let assert Ok(stand_in) = server.start_with_config(19_861, routes)
 
       // Act
-      let answer = ask("http://localhost:19861", "test-key", "Say hello")
-      server.stop(stand_in)
+      let rows = [
+        #(
+          "ask against rate_limited_routes()",
+          ask_with_routes(19_877, guide_stand_in_routes.rate_limited_routes()),
+        ),
+        #(
+          "ask against broken_routes()",
+          ask_with_routes(19_878, guide_stand_in_routes.broken_routes()),
+        ),
+        #(
+          "ask against a 500 route",
+          ask_with_routes(19_861, server_error_routes),
+        ),
+      ]
 
       // Assert
-      answer
+      Ok(output_file.table(rows))
       |> should
-      |> be_equal(
-        Error(ApiError(
-          status: 500,
-          body: "{\"error\":{\"message\":\"Internal error\"}}",
-        )),
-      )
-      |> or_fail_with("Expected ApiError 500")
+      |> be_equal(output_file.read("guide_stand_in_failing_routes"))
+      |> or_fail_with("Expected the errors of the output file")
     }),
     it("step 4: GET /resource gives 200", fn() {
       // Act
@@ -97,69 +128,26 @@ pub fn tests() -> TestSuite {
       |> be_equal(Ok(#(404, "Not found")))
       |> or_fail_with("Expected 404 for a method with no route")
     }),
-    it("step 4: /api/special goes to the exact route", fn() {
+    it("step 4: the exact route comes before the prefix route", fn() {
+      // Arrange
+      let assert Ok(stand_in) =
+        server.start_with_config(19_865, config_mode_ordering.api_routes())
+
       // Act
-      let answer =
-        send_with_routes(
-          19_865,
-          config_mode_ordering.api_routes(),
-          http.Get,
-          "/api/special",
+      let rows =
+        list.map(
+          ["/api/special", "/api/users", "/apiary", "/api/special?debug=1"],
+          fn(path) {
+            #("GET " <> path, send(19_865, http.Get, path) |> status_and_body)
+          },
         )
+      server.stop(stand_in)
 
       // Assert
-      answer
+      Ok(output_file.table(rows))
       |> should
-      |> be_equal(Ok(#(200, "special")))
-      |> or_fail_with("Expected the exact route")
-    }),
-    it("step 4: /api/users goes to the prefix route", fn() {
-      // Act
-      let answer =
-        send_with_routes(
-          19_866,
-          config_mode_ordering.api_routes(),
-          http.Get,
-          "/api/users",
-        )
-
-      // Assert
-      answer
-      |> should
-      |> be_equal(Ok(#(200, "general")))
-      |> or_fail_with("Expected the prefix route")
-    }),
-    it("step 4: /apiary also goes to the prefix route", fn() {
-      // Act
-      let answer =
-        send_with_routes(
-          19_867,
-          config_mode_ordering.api_routes(),
-          http.Get,
-          "/apiary",
-        )
-
-      // Assert
-      answer
-      |> should
-      |> be_equal(Ok(#(200, "general")))
-      |> or_fail_with("Expected the prefix /api to match /apiary")
-    }),
-    it("step 4: an exact route ignores the query string", fn() {
-      // Act
-      let answer =
-        send_with_routes(
-          19_868,
-          config_mode_ordering.api_routes(),
-          http.Get,
-          "/api/special?debug=1",
-        )
-
-      // Assert
-      answer
-      |> should
-      |> be_equal(Ok(#(200, "special")))
-      |> or_fail_with("Expected the query string to be ignored")
+      |> be_equal(output_file.read("guide_stand_in_route_order"))
+      |> or_fail_with("Expected the answers of the output file")
     }),
     it("step 4: an exact route does not match a trailing slash", fn() {
       // Act
@@ -278,16 +266,56 @@ fn send_with_routes(
   path: String,
 ) -> Result(#(Int, String), String) {
   let assert Ok(stand_in) = server.start_with_config(port, routes)
-  let answer =
-    request.to("http://localhost:" <> int.to_string(port) <> path)
-    |> result.replace_error("Not a valid URL")
-    |> result.map(request.set_method(_, method))
-    |> result.try(fn(http_request) {
-      httpc.send(http_request) |> result.map_error(string.inspect)
-    })
-    |> result.map(fn(response) { #(response.status, response.body) })
+  let answer = send(port, method, path)
   server.stop(stand_in)
   answer
+}
+
+fn send(
+  port: Int,
+  method: Method,
+  path: String,
+) -> Result(#(Int, String), String) {
+  request.to("http://localhost:" <> int.to_string(port) <> path)
+  |> result.replace_error("Not a valid URL")
+  |> result.map(request.set_method(_, method))
+  |> result.try(fn(http_request) {
+    httpc.send(http_request) |> result.map_error(string.inspect)
+  })
+  |> result.map(fn(response) { #(response.status, response.body) })
+}
+
+/// Writes an answer as the guide does: the status and the body as a string.
+fn status_and_body(answer: Result(#(Int, String), String)) -> String {
+  case answer {
+    Ok(#(status, body)) -> int.to_string(status) <> " " <> string.inspect(body)
+    Error(message) -> message
+  }
+}
+
+/// Starts a stand-in with `routes`, asks it, stops it, and writes the
+/// answer as Gleam code.
+fn ask_with_routes(port: Int, routes: List(MockRoute)) -> String {
+  let assert Ok(stand_in) = server.start_with_config(port, routes)
+  let answer =
+    ask("http://localhost:" <> int.to_string(port), "test-key", "Say hello")
+  server.stop(stand_in)
+  answer_literal(answer)
+}
+
+/// Writes an answer of `ask` as Gleam code, with the labels of the fields
+/// of `ApiError`.
+fn answer_literal(answer: Result(String, ChatError)) -> String {
+  case answer {
+    Ok(reply) -> "Ok(" <> string.inspect(reply) <> ")"
+    Error(ApiError(status:, body:)) ->
+      "Error(ApiError(status: "
+      <> int.to_string(status)
+      <> ", body: "
+      <> string.inspect(body)
+      <> "))"
+    Error(other_error) -> "Error(" <> string.inspect(other_error) <> ")"
+  }
 }
 
 fn response_header(

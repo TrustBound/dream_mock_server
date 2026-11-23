@@ -1,0 +1,2 @@
+fetch_text(".../non-utf8-error", 2000)
+  -> Error(Refused(status: 400, body: <<"Error: ", 192, 193, 254, 255>>))

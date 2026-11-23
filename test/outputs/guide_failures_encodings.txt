@@ -1,0 +1,3 @@
+fetch_text(".../identity", 2000)          -> Ok("Hello, World!")
+fetch_text(".../unknown-encoding", 2000)  -> Error(UnsupportedEncoding("br"))
+fetch_text(".../gzip", 2000)              -> Error(UnsupportedEncoding("gzip"))

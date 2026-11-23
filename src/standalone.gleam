@@ -7,6 +7,8 @@
 ////
 //// Run the server from the root of the package:
 ////
+//// ### Run the server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/scripts/run-server-smoke.sh#L55"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+////
 //// ```sh
 //// gleam run -m standalone
 //// ```
