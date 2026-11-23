@@ -547,6 +547,8 @@ gleam test
 
 See [CONTRIBUTING.md](https://github.com/TrustBound/dream_mock_server/blob/main/CONTRIBUTING.md).
 
+Run `make check-snippets` to check that each code block in the docs matches a tested snippet file.
+
 ---
 
 ## License

@@ -5,7 +5,7 @@ All notable changes to `dream_mock_server` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 2.0.0 - Unreleased
+## [2.0.0] - Unreleased
 
 ### Changed
 
@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Needs dream 3.0.0 or later. A major version, because a project on dream 2 cannot use it.
 - The integration scenarios run on dream_test's Gherkin support inside `gleam test`. Elixir is no longer needed.
 
-## 1.1.1 - 2026-03-03
+## [1.1.1] - 2026-03-03
 
 ### Fixed
 
@@ -23,13 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   well, and the JSON response includes a `"query"` field with the raw query
   string.
 
-## 1.1.0 - 2026-02-15
+## [1.1.0] - 2026-02-15
 
 ### Added
 
 - **Config mode:** `start_with_config(port, config)` starts the mock with a caller-provided list of routes (path, optional method, status, body). No built-in provider logic; first matching route wins; no match returns 404. Use for proxy tests or any deterministic upstream. New types: `dream_mock_server/config.{MockRoute, PathMatch, Exact, Prefix}`.
 
-## 1.0.0 - 2025-11-24
+## [1.0.0] - 2025-11-24
 
 ### Added
 

@@ -68,6 +68,9 @@ jobs:
           CI: "true"
         run: gleam test
 
+      - name: Check docs code blocks against tested snippets
+        run: gleam run -m dream_snippets
+
       - name: Build documentation
         run: gleam docs build
 
