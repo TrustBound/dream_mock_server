@@ -4,17 +4,34 @@
 
 import dream_mock_server/config.{Exact, MockRoute, Prefix}
 import dream_mock_server/server
-import dream_test/matchers.{be_equal, or_fail_with, should}
+import dream_test/matchers.{be_equal, match_snapshot, or_fail_with, should}
 import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
+import fixtures/zlib
+import gleam/bit_array
 import gleam/int
+import gleam/list
 import gleam/option.{None}
 import gleam/yielder
+import snippets/api_view_delete
+import snippets/api_view_error
+import snippets/api_view_get
+import snippets/api_view_patch
+import snippets/api_view_post
+import snippets/api_view_put
+import snippets/api_view_simple_json
+import snippets/api_view_status
+import snippets/api_view_text
+import snippets/api_view_uuid
+import snippets/compression_deflate
+import snippets/compression_deflate_chunks
+import snippets/compression_gzip
+import snippets/compression_gzip_chunks
 import snippets/config_mode_method_specific
 import snippets/config_mode_ordering
 import snippets/config_mode_prefix
 import snippets/http_helper
-import snippets/non_streaming_technique
+import snippets/index_page
 import snippets/port
 import snippets/programmatic_control
 import snippets/programmatic_mode
@@ -29,8 +46,13 @@ pub fn tests() -> TestSuite {
     config_mode_ordering_tests(),
     programmatic_control_tests(),
     streaming_technique_tests(),
-    non_streaming_technique_tests(),
     release_1_1_0_config_mode_tests(),
+    compression_gzip_tests(),
+    compression_deflate_tests(),
+    compression_gzip_chunks_tests(),
+    compression_deflate_chunks_tests(),
+    api_view_tests(),
+    index_page_tests(),
   ])
 }
 
@@ -253,24 +275,6 @@ fn streaming_technique_tests() {
   ])
 }
 
-fn non_streaming_technique_tests() {
-  group("non_streaming_technique.echo_body", [
-    it("returns the method and path as JSON", fn() {
-      // Arrange
-      let method = "DELETE"
-
-      // Act
-      let body = non_streaming_technique.echo_body(method, "/delete")
-
-      // Assert
-      body
-      |> should
-      |> be_equal("{\"method\":\"DELETE\",\"url\":\"/delete\"}")
-      |> or_fail_with("Expected the method and path as JSON")
-    }),
-  ])
-}
-
 fn release_1_1_0_config_mode_tests() {
   group("release_1_1_0_config_mode", [
     it("start_chat_mock answers the chat completion path", fn() {
@@ -292,6 +296,232 @@ fn release_1_1_0_config_mode_tests() {
         Ok(#(200, "{\"choices\":[{\"message\":{\"content\":\"\"}}]}")),
       )
       |> or_fail_with("Expected the chat completion body")
+    }),
+  ])
+}
+
+fn compression_gzip_tests() {
+  group("compression_gzip.gzip_body", [
+    it("returns gzip data that gunzips to Hello, World!", fn() {
+      // Act
+      let body = compression_gzip.gzip_body()
+
+      // Assert
+      zlib.gunzip(body)
+      |> should
+      |> be_equal(<<"Hello, World!":utf8>>)
+      |> or_fail_with("Expected Hello, World! after gunzip")
+    }),
+  ])
+}
+
+fn compression_deflate_tests() {
+  group("compression_deflate.deflate_body", [
+    it("returns zlib data that inflates to Hello, World!", fn() {
+      // Act
+      let body = compression_deflate.deflate_body()
+
+      // Assert
+      zlib.uncompress(body)
+      |> should
+      |> be_equal(<<"Hello, World!":utf8>>)
+      |> or_fail_with("Expected Hello, World! after inflate")
+    }),
+  ])
+}
+
+fn compression_gzip_chunks_tests() {
+  group("compression_gzip_chunks.gzip_stream_chunks", [
+    it("returns three chunks", fn() {
+      // Act
+      let chunks = compression_gzip_chunks.gzip_stream_chunks()
+
+      // Assert
+      list.length(chunks)
+      |> should
+      |> be_equal(3)
+      |> or_fail_with("Expected three chunks")
+    }),
+    it("returns chunks that together gunzip to both text chunks", fn() {
+      // Act
+      let chunks = compression_gzip_chunks.gzip_stream_chunks()
+
+      // Assert
+      zlib.gunzip(bit_array.concat(chunks))
+      |> should
+      |> be_equal(<<"Chunk 1\nChunk 2\n":utf8>>)
+      |> or_fail_with("Expected both text chunks after gunzip")
+    }),
+  ])
+}
+
+fn compression_deflate_chunks_tests() {
+  group("compression_deflate_chunks.deflate_stream_chunks", [
+    it("returns three chunks", fn() {
+      // Act
+      let chunks = compression_deflate_chunks.deflate_stream_chunks()
+
+      // Assert
+      list.length(chunks)
+      |> should
+      |> be_equal(3)
+      |> or_fail_with("Expected three chunks")
+    }),
+    it("returns chunks that together inflate to both text chunks", fn() {
+      // Act
+      let chunks = compression_deflate_chunks.deflate_stream_chunks()
+
+      // Assert
+      zlib.uncompress(bit_array.concat(chunks))
+      |> should
+      |> be_equal(<<"Chunk 1\nChunk 2\n":utf8>>)
+      |> or_fail_with("Expected both text chunks after inflate")
+    }),
+  ])
+}
+
+fn api_view_tests() {
+  group("api_view snippets", [
+    group("api_view_get.get_body", [
+      it("returns the GET echo JSON", fn() {
+        // Act
+        let body = api_view_get.get_body()
+
+        // Assert
+        body
+        |> should
+        |> be_equal(
+          "{\"method\":\"GET\",\"url\":\"/get\",\"query\":\"page=2\",\"headers\":[]}",
+        )
+        |> or_fail_with("Expected the GET echo JSON")
+      }),
+    ]),
+    group("api_view_post.post_body", [
+      it("returns the POST echo JSON", fn() {
+        // Act
+        let body = api_view_post.post_body()
+
+        // Assert
+        body
+        |> should
+        |> be_equal(
+          "{\"method\":\"POST\",\"url\":\"/post\",\"data\":\"hello\"}",
+        )
+        |> or_fail_with("Expected the POST echo JSON")
+      }),
+    ]),
+    group("api_view_put.put_body", [
+      it("returns the PUT echo JSON", fn() {
+        // Act
+        let body = api_view_put.put_body()
+
+        // Assert
+        body
+        |> should
+        |> be_equal("{\"method\":\"PUT\",\"url\":\"/put\",\"data\":\"hello\"}")
+        |> or_fail_with("Expected the PUT echo JSON")
+      }),
+    ]),
+    group("api_view_patch.patch_body", [
+      it("returns the PATCH echo JSON", fn() {
+        // Act
+        let body = api_view_patch.patch_body()
+
+        // Assert
+        body
+        |> should
+        |> be_equal(
+          "{\"method\":\"PATCH\",\"url\":\"/patch\",\"data\":\"hello\"}",
+        )
+        |> or_fail_with("Expected the PATCH echo JSON")
+      }),
+    ]),
+    group("api_view_delete.delete_body", [
+      it("returns the DELETE echo JSON", fn() {
+        // Act
+        let body = api_view_delete.delete_body()
+
+        // Assert
+        body
+        |> should
+        |> be_equal("{\"method\":\"DELETE\",\"url\":\"/delete\"}")
+        |> or_fail_with("Expected the DELETE echo JSON")
+      }),
+    ]),
+    group("api_view_status.status_body", [
+      it("returns the status JSON", fn() {
+        // Act
+        let body = api_view_status.status_body()
+
+        // Assert
+        body
+        |> should
+        |> be_equal("{\"status\":404}")
+        |> or_fail_with("Expected the status JSON")
+      }),
+    ]),
+    group("api_view_simple_json.json_body", [
+      it("returns the fixed JSON object", fn() {
+        // Act
+        let body = api_view_simple_json.json_body()
+
+        // Assert
+        body
+        |> should
+        |> be_equal("{\"message\":\"Hello, World!\",\"success\":true}")
+        |> or_fail_with("Expected the fixed JSON object")
+      }),
+    ]),
+    group("api_view_uuid.uuid_body", [
+      it("returns the fixed UUID JSON", fn() {
+        // Act
+        let body = api_view_uuid.uuid_body()
+
+        // Assert
+        body
+        |> should
+        |> be_equal("{\"uuid\":\"123e4567-e89b-12d3-a456-426614174000\"}")
+        |> or_fail_with("Expected the fixed UUID JSON")
+      }),
+    ]),
+    group("api_view_text.text_body", [
+      it("returns the fixed text", fn() {
+        // Act
+        let body = api_view_text.text_body()
+
+        // Assert
+        body
+        |> should
+        |> be_equal("Hello, World!")
+        |> or_fail_with("Expected Hello, World!")
+      }),
+    ]),
+    group("api_view_error.error_body", [
+      it("returns the error JSON", fn() {
+        // Act
+        let body = api_view_error.error_body()
+
+        // Assert
+        body
+        |> should
+        |> be_equal("{\"error\":\"code must be an integer\"}")
+        |> or_fail_with("Expected the error JSON")
+      }),
+    ]),
+  ])
+}
+
+fn index_page_tests() {
+  group("index_page.index_page", [
+    it("returns the info page of the snapshot", fn() {
+      // Act
+      let page = index_page.index_page()
+
+      // Assert
+      page
+      |> should
+      |> match_snapshot("test/snapshots/index_view_format_index.snap")
+      |> or_fail_with("Expected the info page of the snapshot")
     }),
   ])
 }

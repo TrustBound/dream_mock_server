@@ -116,13 +116,56 @@ Key principles:
    git push origin feature/my-feature
    ```
 
+## How the Code Is Organized
+
+The mock server has a pure core and a thin adapter. The core decides the answer to each request and has no socket, so its tests call it directly. The adapter connects the core to [dream_http_server](https://hexdocs.pm/dream_http_server), the HTTP server. It sends a whole body with a `content-length` header, and a streamed body as a chunked response.
+
+```text
+src/
+├── standalone.gleam                    # Standalone entry point (port 3004)
+├── compression_ffi.erl                 # zlib compression
+├── dream_mock_server_ffi.erl           # Port check and server stop
+└── dream_mock_server/
+    ├── server.gleam                    # Programmatic start/stop functions
+    ├── config.gleam                    # Config mode route types
+    ├── compression.gleam               # Compression helpers
+    ├── internal/
+    │   ├── message.gleam               # Request and response types of the core
+    │   ├── routes.gleam                # Route match: which endpoint answers
+    │   ├── path.gleam                  # Path segments for the route match
+    │   ├── api_endpoints.gleam         # Non-streaming endpoints
+    │   ├── stream_endpoints.gleam      # Streaming endpoints and the info page
+    │   ├── config_endpoint.gleam       # Config mode endpoint
+    │   ├── mist_adapter.gleam          # Converts between the core and the server
+    │   └── standalone_runner.gleam     # Runs the server for standalone.main
+    └── views/
+        ├── api_view.gleam              # JSON and text bodies
+        └── index_view.gleam            # Info page text
+```
+
+The modules in `internal/` are not part of the public API.
+
+A streaming endpoint returns a `Yielder(BitArray)`. The adapter sends one chunk for each element, and asks for the next element only after it sent the last one, so a `process.sleep` in the yielder sets the pause before each chunk. The [Endpoint reference](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/endpoint-reference.md#how-streams-are-timed) shows the code of `/stream/fast`.
+
+The runtime dependencies:
+
+- **dream_http_server**: the HTTP server (a fork of mist)
+- **gleam_http**: HTTP methods
+- **gleam_erlang**: process control (sleep)
+- **gleam_otp**: the start error type
+- **gleam_json**: JSON encoding
+- **gleam_yielder**: stream generation
+
+The mock server does not depend on the Dream web framework.
+
 ## Testing Requirements
 
 All contributions must include tests:
 
 - **Unit tests** - Fast, isolated, deterministic
 - **Server tests** - Start the server on a free port and send real requests
-- **Gherkin scenarios** - `test/features/mock_server.feature`, with step definitions in `test/features/mock_server_feature.gleam`; dream_test runs them inside `gleam test`
+- **Gherkin scenarios** - `test/features/mock_server.feature`, with step definitions in `test/features/mock_server_feature.gleam`; dream_test runs them inside `gleam test`. Each scenario starts the server on a free port, sends real HTTP requests to it and stops it. The scenarios check the status codes, the content format, the chunk counts and timing, the error handling and the JSON of every endpoint
+- **Guide tests** - each code block in the guides is a snippet in `test/snippets/`, and `test/guides/` asserts the exact results that the guides show
 - **100% coverage** - For all code in `src/`; `gleam test` fails below it
 
 See the [Testing Guide](https://github.com/TrustBound/dream/blob/release/3.0.0/docs/contributing/testing.md) for details.

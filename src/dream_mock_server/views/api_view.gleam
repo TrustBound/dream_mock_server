@@ -15,6 +15,20 @@ import gleam/json
 /// ## Returns
 ///
 /// The JSON `{"method":"GET","url":<path>,"query":<query>,"headers":[]}`.
+///
+/// ## Example
+///
+/// ### Format the body of a GET request <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/api_view_get.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+///
+/// ```gleam
+/// import dream_mock_server/views/api_view
+///
+/// /// The body of `GET /get?page=2`:
+/// /// `{"method":"GET","url":"/get","query":"page=2","headers":[]}`.
+/// pub fn get_body() -> String {
+///   api_view.get_to_json("/get", "page=2")
+/// }
+/// ```
 pub fn get_to_json(path: String, query: String) -> String {
   get_to_json_object(path, query)
   |> json.to_string()
@@ -30,6 +44,20 @@ pub fn get_to_json(path: String, query: String) -> String {
 /// ## Returns
 ///
 /// The JSON `{"method":"POST","url":<path>,"data":<body>}`.
+///
+/// ## Example
+///
+/// ### Format the body of a POST request <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/api_view_post.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+///
+/// ```gleam
+/// import dream_mock_server/views/api_view
+///
+/// /// The body of `POST /post` with the body `hello`:
+/// /// `{"method":"POST","url":"/post","data":"hello"}`.
+/// pub fn post_body() -> String {
+///   api_view.post_to_json("/post", "hello")
+/// }
+/// ```
 pub fn post_to_json(path: String, body: String) -> String {
   post_to_json_object(path, body)
   |> json.to_string()
@@ -45,6 +73,20 @@ pub fn post_to_json(path: String, body: String) -> String {
 /// ## Returns
 ///
 /// The JSON `{"method":"PUT","url":<path>,"data":<body>}`.
+///
+/// ## Example
+///
+/// ### Format the body of a PUT request <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/api_view_put.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+///
+/// ```gleam
+/// import dream_mock_server/views/api_view
+///
+/// /// The body of `PUT /put` with the body `hello`:
+/// /// `{"method":"PUT","url":"/put","data":"hello"}`.
+/// pub fn put_body() -> String {
+///   api_view.put_to_json("/put", "hello")
+/// }
+/// ```
 pub fn put_to_json(path: String, body: String) -> String {
   put_to_json_object(path, body)
   |> json.to_string()
@@ -60,6 +102,20 @@ pub fn put_to_json(path: String, body: String) -> String {
 /// ## Returns
 ///
 /// The JSON `{"method":"PATCH","url":<path>,"data":<body>}`.
+///
+/// ## Example
+///
+/// ### Format the body of a PATCH request <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/api_view_patch.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+///
+/// ```gleam
+/// import dream_mock_server/views/api_view
+///
+/// /// The body of `PATCH /patch` with the body `hello`:
+/// /// `{"method":"PATCH","url":"/patch","data":"hello"}`.
+/// pub fn patch_body() -> String {
+///   api_view.patch_to_json("/patch", "hello")
+/// }
+/// ```
 pub fn patch_to_json(path: String, body: String) -> String {
   patch_to_json_object(path, body)
   |> json.to_string()
@@ -74,6 +130,19 @@ pub fn patch_to_json(path: String, body: String) -> String {
 /// ## Returns
 ///
 /// The JSON `{"method":"DELETE","url":<path>}`.
+///
+/// ## Example
+///
+/// ### Format the body of a DELETE request <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/api_view_delete.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+///
+/// ```gleam
+/// import dream_mock_server/views/api_view
+///
+/// /// The body of `DELETE /delete`: `{"method":"DELETE","url":"/delete"}`.
+/// pub fn delete_body() -> String {
+///   api_view.delete_to_json("/delete")
+/// }
+/// ```
 pub fn delete_to_json(path: String) -> String {
   delete_to_json_object(path)
   |> json.to_string()
@@ -88,6 +157,19 @@ pub fn delete_to_json(path: String) -> String {
 /// ## Returns
 ///
 /// The JSON `{"status":<code>}`.
+///
+/// ## Example
+///
+/// ### Format the body of a status response <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/api_view_status.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+///
+/// ```gleam
+/// import dream_mock_server/views/api_view
+///
+/// /// The body of `GET /status/404`: `{"status":404}`.
+/// pub fn status_body() -> String {
+///   api_view.status_to_json(404)
+/// }
+/// ```
 pub fn status_to_json(code: Int) -> String {
   status_to_json_object(code)
   |> json.to_string()
@@ -98,6 +180,19 @@ pub fn status_to_json(code: Int) -> String {
 /// ## Returns
 ///
 /// The JSON `{"message":"Hello, World!","success":true}`.
+///
+/// ## Example
+///
+/// ### Format the fixed JSON body <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/api_view_simple_json.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+///
+/// ```gleam
+/// import dream_mock_server/views/api_view
+///
+/// /// The body of `GET /json`: `{"message":"Hello, World!","success":true}`.
+/// pub fn json_body() -> String {
+///   api_view.simple_json_to_string()
+/// }
+/// ```
 pub fn simple_json_to_string() -> String {
   simple_json_object()
   |> json.to_string()
@@ -109,6 +204,20 @@ pub fn simple_json_to_string() -> String {
 ///
 /// The JSON `{"uuid":"123e4567-e89b-12d3-a456-426614174000"}`. The UUID is
 /// always the same.
+///
+/// ## Example
+///
+/// ### Format the fixed UUID body <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/api_view_uuid.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+///
+/// ```gleam
+/// import dream_mock_server/views/api_view
+///
+/// /// The body of `GET /uuid`:
+/// /// `{"uuid":"123e4567-e89b-12d3-a456-426614174000"}`.
+/// pub fn uuid_body() -> String {
+///   api_view.uuid_to_json()
+/// }
+/// ```
 pub fn uuid_to_json() -> String {
   uuid_json_object()
   |> json.to_string()
@@ -119,6 +228,19 @@ pub fn uuid_to_json() -> String {
 /// ## Returns
 ///
 /// The text `Hello, World!`.
+///
+/// ## Example
+///
+/// ### Format the fixed text body <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/api_view_text.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+///
+/// ```gleam
+/// import dream_mock_server/views/api_view
+///
+/// /// The body of `GET /text`: `Hello, World!`.
+/// pub fn text_body() -> String {
+///   api_view.text_to_string()
+/// }
+/// ```
 pub fn text_to_string() -> String {
   "Hello, World!"
 }
@@ -132,6 +254,19 @@ pub fn text_to_string() -> String {
 /// ## Returns
 ///
 /// The JSON `{"error":<message>}`.
+///
+/// ## Example
+///
+/// ### Format an error body <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/api_view_error.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+///
+/// ```gleam
+/// import dream_mock_server/views/api_view
+///
+/// /// The error body of `GET /status/abc`: `{"error":"code must be an integer"}`.
+/// pub fn error_body() -> String {
+///   api_view.error_to_json("code must be an integer")
+/// }
+/// ```
 pub fn error_to_json(message: String) -> String {
   error_to_json_object(message)
   |> json.to_string()

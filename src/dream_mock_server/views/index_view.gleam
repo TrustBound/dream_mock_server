@@ -6,6 +6,20 @@
 ///
 /// Plain text that lists the built-in endpoints, with what each one returns
 /// and what to use it for.
+///
+/// ## Example
+///
+/// ### Format the info page <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/index_page.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+///
+/// ```gleam
+/// import dream_mock_server/views/index_view
+///
+/// /// The info page of `GET /`. The first line is
+/// /// `Mock Server - Testing & Demo Endpoints`.
+/// pub fn index_page() -> String {
+///   index_view.format_index()
+/// }
+/// ```
 pub fn format_index() -> String {
   "Mock Server - Testing & Demo Endpoints\n\n"
   <> "This server provides both streaming and non-streaming endpoints for testing HTTP clients.\n\n"

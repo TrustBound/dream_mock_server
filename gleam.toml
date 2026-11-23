@@ -13,11 +13,10 @@ internal_modules = ["dream_mock_server/internal", "dream_mock_server/internal/*"
 [documentation]
 pages = [
     { title = "Getting started", path = "guides/getting-started.html", source = "./docs/guides/getting-started.md" },
-    { title = "Run the server", path = "guides/run-the-server.html", source = "./docs/guides/run-the-server.md" },
-    { title = "Config mode", path = "guides/config-mode.html", source = "./docs/guides/config-mode.md" },
-    { title = "Non-streaming endpoints", path = "guides/non-streaming-endpoints.html", source = "./docs/guides/non-streaming-endpoints.md" },
-    { title = "Streaming endpoints", path = "guides/streaming-endpoints.html", source = "./docs/guides/streaming-endpoints.md" },
-    { title = "How it works", path = "guides/how-it-works.html", source = "./docs/guides/how-it-works.md" },
+    { title = "Test how your client handles failures", path = "guides/testing-failures.html", source = "./docs/guides/testing-failures.md" },
+    { title = "Stand in for a third-party API", path = "guides/stand-in-for-an-api.html", source = "./docs/guides/stand-in-for-an-api.md" },
+    { title = "Run the server while you develop", path = "guides/run-the-server.html", source = "./docs/guides/run-the-server.md" },
+    { title = "Endpoint reference", path = "guides/endpoint-reference.html", source = "./docs/guides/endpoint-reference.md" },
 ]
 
 [dependencies]

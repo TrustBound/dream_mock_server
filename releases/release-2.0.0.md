@@ -69,7 +69,7 @@ The integration scenarios run on dream_test's Gherkin support inside `gleam test
 
 ### Guides
 
-The package has guides in [`docs/guides/`](https://github.com/TrustBound/dream_mock_server/tree/main/docs/guides). The README is short and links to them, and HexDocs shows the guides.
+The package has four guides in [`docs/guides/`](https://github.com/TrustBound/dream_mock_server/tree/main/docs/guides), each built around a task: getting started, testing how a client handles failures, standing in for a third-party API, and running the server while you develop. An endpoint reference lists every built-in endpoint with its status, headers, body and timing. Every code block in the guides is a tested snippet. The README is short and links to them, and HexDocs shows them.
 
 ## Known Limits
 
@@ -78,7 +78,7 @@ The package has guides in [`docs/guides/`](https://github.com/TrustBound/dream_m
 
 ## Testing
 
-- 233 tests run, 0 failed, in about 58 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (306 of 306 lines)
+- 299 tests run, 0 failed, in about 50 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (306 of 306 lines)
 - Each of 55 recorded requests gets the same raw HTTP answer as before the move to `dream_http_server`
 
 ## Upgrading
@@ -139,11 +139,10 @@ These are removed:
 - [dream_http_server](https://hexdocs.pm/dream_http_server) - v1.3.1
 - [README](https://github.com/TrustBound/dream_mock_server/blob/main/README.md)
 - [Getting started](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/getting-started.md)
-- [Run the server](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/run-the-server.md)
-- [Config mode](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/config-mode.md)
-- [Non-streaming endpoints](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/non-streaming-endpoints.md)
-- [Streaming endpoints](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/streaming-endpoints.md)
-- [How it works](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/how-it-works.md)
+- [Test how your client handles failures](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/testing-failures.md)
+- [Stand in for a third-party API](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/stand-in-for-an-api.md)
+- [Run the server while you develop](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/run-the-server.md)
+- [Endpoint reference](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/endpoint-reference.md)
 - [Changelog](https://github.com/TrustBound/dream_mock_server/blob/main/CHANGELOG.md)
 
 ## Community

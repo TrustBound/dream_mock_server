@@ -15,7 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `MockRoute.method` is now an `Option` of `gleam/http.Method`. Import the methods from `gleam/http`, for example `import gleam/http.{Get, Post}`.
 - Every endpoint answers as before, with the same status, headers, body bytes, chunks and timing.
 - The integration scenarios run on dream_test's Gherkin support inside `gleam test`. Elixir is no longer needed.
-- The package now has guides in `docs/guides/`. The README is short and links to them, and HexDocs shows the guides.
+- The package now has four guides in `docs/guides/`, each built around a task: getting started, testing how a client handles failures, standing in for a third-party API, and running the server while you develop. An endpoint reference lists every built-in endpoint. Every code block in the guides is a tested snippet. The README is short and links to them, and HexDocs shows them.
+- Every public function has a tested example in its doc comment, 19 functions in all.
 
 ### Removed
 
@@ -25,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Testing
 
-- 233 tests run, 0 failed, in about 58 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (306 of 306 lines).
+- 299 tests run, 0 failed, in about 50 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (306 of 306 lines).
 - Each of 55 recorded requests, one or more for each endpoint, gets the same raw HTTP answer as before the move to `dream_http_server`.
 
 ## [1.1.1] - 2026-03-03

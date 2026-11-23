@@ -19,6 +19,10 @@ import dream_test/reporters/bdd
 import dream_test/reporters/progress
 import dream_test/runner
 import features/mock_server_feature
+import guides/failures_test
+import guides/getting_started_test
+import guides/readers_tests_test
+import guides/stand_in_test
 import server_test
 import snippets/integration_testing
 import snippets_test
@@ -43,6 +47,13 @@ pub fn main() {
     snippets_test.tests(),
     integration_testing.tests(),
     mock_server_feature.tests(),
+    getting_started_test.tests(),
+    failures_test.tests(),
+    stand_in_test.tests(),
+    readers_tests_test.getting_started(),
+    readers_tests_test.failures(),
+    readers_tests_test.stand_in(),
+    readers_tests_test.run_the_server(),
   ])
   // The streaming endpoints sleep between chunks: /stream/slow takes about
   // ten seconds to read.
