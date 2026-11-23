@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `MockRoute.method` is now an `Option` of `gleam/http.Method`. Import the methods from `gleam/http`, for example `import gleam/http.{Get, Post}`.
 - Every endpoint answers as before, with the same status, headers, body bytes, chunks and timing.
 - The integration scenarios run on dream_test's Gherkin support inside `gleam test`. Elixir is no longer needed.
+- The package now has guides in `docs/guides/`. The README is short and links to them, and HexDocs shows the guides.
 
 ### Removed
 

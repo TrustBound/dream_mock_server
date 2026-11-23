@@ -67,6 +67,10 @@ The integration scenarios run on dream_test's Gherkin support inside `gleam test
 
 `dream_mock_server` moved out of the Dream repository. It has its own version, its own changelog and its own release workflow. The package name on Hex is the same as before.
 
+### Guides
+
+The package has guides in [`docs/guides/`](https://github.com/TrustBound/dream_mock_server/tree/main/docs/guides). The README is short and links to them, and HexDocs shows the guides.
+
 ## Known Limits
 
 - CONNECT, TRACE and methods that are not standard are handled as GET, as before. A `MockRoute` with one of those methods can never match
@@ -134,6 +138,12 @@ These are removed:
 - [dream_mock_server](https://hexdocs.pm/dream_mock_server) - v2.0.0
 - [dream_http_server](https://hexdocs.pm/dream_http_server) - v1.3.1
 - [README](https://github.com/TrustBound/dream_mock_server/blob/main/README.md)
+- [Getting started](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/getting-started.md)
+- [Run the server](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/run-the-server.md)
+- [Config mode](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/config-mode.md)
+- [Non-streaming endpoints](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/non-streaming-endpoints.md)
+- [Streaming endpoints](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/streaming-endpoints.md)
+- [How it works](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/how-it-works.md)
 - [Changelog](https://github.com/TrustBound/dream_mock_server/blob/main/CHANGELOG.md)
 
 ## Community
