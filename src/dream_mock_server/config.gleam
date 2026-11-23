@@ -4,7 +4,7 @@
 //// status and body of each path. The mock server adds no built-in endpoints in
 //// this mode: the routes you give are the only ones.
 
-import dream/http/request.{type Method}
+import gleam/http.{type Method}
 import gleam/option
 
 /// How a route path matches the request path.
@@ -30,8 +30,10 @@ pub type PathMatch {
 ///
 /// - `path`: The path to match, for example `"/v1/chat/completions"`.
 /// - `path_match`: `Exact` or `Prefix`.
-/// - `method`: `Some(method)` to match only that method, or `None` to match
-///   every method.
+/// - `method`: `Some(method)` to match only that method, for example
+///   `Some(http.Post)` with `import gleam/http`, or `None` to match every
+///   method. A request with the method CONNECT, TRACE or a method that is
+///   not standard is handled as GET.
 /// - `status`: The HTTP status code of the response.
 /// - `body`: The response body, sent as it is with the content type
 ///   `text/plain; charset=utf-8`.
@@ -65,13 +67,4 @@ pub type MockRoute {
     status: Int,
     body: String,
   )
-}
-
-/// The context of the config-mode router: the routes to match.
-///
-/// `server.start_with_config` creates it from your route list. You need it
-/// only to run `router.create_config_router` with your own Dream server.
-pub type MockConfigContext {
-  /// Holds the routes, in the order that they are checked.
-  MockConfigContext(routes: List(MockRoute))
 }

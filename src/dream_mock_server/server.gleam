@@ -44,12 +44,24 @@
 ////   `GET /stream/json`, `GET /stream/binary`: streams with fixed chunks and
 ////   timing
 ////
-//// See `dream_mock_server/router.create_router` for the full list.
+//// `GET /` on a running server lists every endpoint.
 
-import dream/servers/mist/server.{bind, context, listen_with_handle, router} as dream_server
-import dream_mock_server/config.{type MockRoute, MockConfigContext}
-import dream_mock_server/router.{create_config_router, create_router}
+import dream_mock_server/config.{type MockRoute}
+import dream_mock_server/internal/mist_adapter
+import dream_mock_server/internal/routes.{
+  type Mode, BuiltInEndpoints, ConfiguredRoutes,
+}
+import gleam/erlang/process
+import gleam/int
 import gleam/otp/actor
+import gleam/result
+import mist
+
+/// A running mock server. `start` and `start_with_config` return it, and
+/// `stop` stops the server.
+pub opaque type ServerHandle {
+  ServerHandle(supervisor: process.Pid)
+}
 
 /// Starts the mock server with the built-in endpoints on a port.
 ///
@@ -74,7 +86,6 @@ import gleam/otp/actor
 /// ### Start, use and stop the server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/programmatic_control.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 ///
 /// ```gleam
-/// import dream/servers/mist/server as dream_server
 /// import dream_mock_server/server
 /// import gleam/int
 /// import gleam/result
@@ -94,7 +105,7 @@ import gleam/otp/actor
 ///   response
 /// }
 ///
-/// fn start_server(port: Int) -> Result(dream_server.ServerHandle, String) {
+/// fn start_server(port: Int) -> Result(server.ServerHandle, String) {
 ///   server.start(port)
 ///   |> result.map_error(string.inspect)
 /// }
@@ -104,11 +115,8 @@ import gleam/otp/actor
 ///
 /// - `start_with_config` to serve only your own routes
 /// - `stop`
-pub fn start(port: Int) -> Result(dream_server.ServerHandle, actor.StartError) {
-  dream_server.new()
-  |> router(create_router())
-  |> bind("localhost")
-  |> listen_with_handle(port)
+pub fn start(port: Int) -> Result(ServerHandle, actor.StartError) {
+  start_server(port, BuiltInEndpoints)
 }
 
 /// Starts the mock server with your own routes on a port.
@@ -120,7 +128,8 @@ pub fn start(port: Int) -> Result(dream_server.ServerHandle, actor.StartError) {
 /// The routes are checked in list order, and the first route that matches
 /// wins. A route matches when its path matches (`Exact` or `Prefix`) and its
 /// method is `None` or the method of the request. When no route matches, the
-/// response is status 404 with the body `Not found`.
+/// response is status 404 with the body `Not found`. A request with the
+/// method HEAD or OPTIONS gets status 404 with the body `Route not found`.
 ///
 /// ## Parameters
 ///
@@ -141,7 +150,6 @@ pub fn start(port: Int) -> Result(dream_server.ServerHandle, actor.StartError) {
 /// ### Start with one prefix route <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/config_mode_prefix.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 ///
 /// ```gleam
-/// import dream/servers/mist/server as dream_server
 /// import dream_mock_server/config.{type MockRoute, MockRoute, Prefix}
 /// import dream_mock_server/server
 /// import gleam/option.{None}
@@ -162,7 +170,7 @@ pub fn start(port: Int) -> Result(dream_server.ServerHandle, actor.StartError) {
 ///
 /// pub fn start_chat_mock(
 ///   port: Int,
-/// ) -> Result(dream_server.ServerHandle, actor.StartError) {
+/// ) -> Result(server.ServerHandle, actor.StartError) {
 ///   // Point your proxy or client at http://localhost:<port>,
 ///   // then call server.stop(handle).
 ///   server.start_with_config(port, chat_completion_routes())
@@ -176,12 +184,8 @@ pub fn start(port: Int) -> Result(dream_server.ServerHandle, actor.StartError) {
 pub fn start_with_config(
   port: Int,
   config: List(MockRoute),
-) -> Result(dream_server.ServerHandle, actor.StartError) {
-  dream_server.new()
-  |> context(MockConfigContext(routes: config))
-  |> router(create_config_router())
-  |> bind("localhost")
-  |> listen_with_handle(port)
+) -> Result(ServerHandle, actor.StartError) {
+  start_server(port, ConfiguredRoutes(config))
 }
 
 /// Stops a server that `start` or `start_with_config` started.
@@ -202,7 +206,6 @@ pub fn start_with_config(
 /// ### Start, use and stop the server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/programmatic_control.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 ///
 /// ```gleam
-/// import dream/servers/mist/server as dream_server
 /// import dream_mock_server/server
 /// import gleam/int
 /// import gleam/result
@@ -222,11 +225,40 @@ pub fn start_with_config(
 ///   response
 /// }
 ///
-/// fn start_server(port: Int) -> Result(dream_server.ServerHandle, String) {
+/// fn start_server(port: Int) -> Result(server.ServerHandle, String) {
 ///   server.start(port)
 ///   |> result.map_error(string.inspect)
 /// }
 /// ```
-pub fn stop(handle: dream_server.ServerHandle) -> Nil {
-  dream_server.stop(handle)
+pub fn stop(handle: ServerHandle) -> Nil {
+  stop_supervisor(handle.supervisor)
 }
+
+fn start_server(
+  port: Int,
+  mode: Mode,
+) -> Result(ServerHandle, actor.StartError) {
+  case port_in_use(port) {
+    True -> Error(port_in_use_error(port))
+    False ->
+      mist.new(mist_adapter.handler(mode))
+      |> mist.bind("localhost")
+      |> mist.port(port)
+      |> mist.start
+      |> result.map(fn(started) { ServerHandle(supervisor: started.pid) })
+  }
+}
+
+fn port_in_use_error(port: Int) -> actor.StartError {
+  actor.InitFailed(
+    "Port "
+    <> int.to_string(port)
+    <> " already in use on localhost. Stop the process using that port or choose a different one.",
+  )
+}
+
+@external(erlang, "dream_mock_server_ffi", "port_in_use")
+fn port_in_use(port: Int) -> Bool
+
+@external(erlang, "dream_mock_server_ffi", "stop_supervisor")
+fn stop_supervisor(supervisor: process.Pid) -> Nil

@@ -1,5 +1,5 @@
 -module(http_test_ffi).
--export([make_request_full/1, make_request_with_method/3]).
+-export([make_request_full/1, make_request_with_method/3, raw_request/2]).
 
 %% GET request. Returns {ok, {StatusCode, Body}} or {error, Reason}.
 make_request_full(Url) when is_binary(Url) ->
@@ -53,3 +53,23 @@ method_to_atom("POST") -> post;
 method_to_atom("PUT") -> put;
 method_to_atom("DELETE") -> delete;
 method_to_atom("PATCH") -> patch.
+
+%% Sends raw bytes to the local server on Port and returns every byte that
+%% the server sends back until it closes the connection or is quiet for
+%% two seconds.
+raw_request(Port, Request) when is_integer(Port), is_binary(Request) ->
+    case gen_tcp:connect({127, 0, 0, 1}, Port, [binary, {active, false}], 2000) of
+        {ok, Socket} ->
+            ok = gen_tcp:send(Socket, Request),
+            Received = receive_all(Socket, <<>>),
+            ok = gen_tcp:close(Socket),
+            {ok, Received};
+        {error, Reason} ->
+            {error, reason_to_binary(Reason)}
+    end.
+
+receive_all(Socket, Received) ->
+    case gen_tcp:recv(Socket, 0, 2000) of
+        {ok, Data} -> receive_all(Socket, <<Received/binary, Data/binary>>);
+        {error, _ClosedOrQuiet} -> Received
+    end.

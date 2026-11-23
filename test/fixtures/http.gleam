@@ -3,7 +3,9 @@
 import gleam/bit_array
 import gleam/erlang/process
 import gleam/int
+import gleam/list
 import gleam/result
+import gleam/string
 
 @external(erlang, "http_test_ffi", "make_request_full")
 fn make_request_full(url: String) -> Result(#(Int, BitArray), BitArray)
@@ -14,6 +16,25 @@ fn make_request_with_method(
   method: String,
   body: String,
 ) -> Result(#(Int, BitArray), BitArray)
+
+@external(erlang, "http_test_ffi", "raw_request")
+fn raw_request(port: Int, request: BitArray) -> Result(BitArray, BitArray)
+
+/// Sends raw request text to the local server at `port`. Returns the
+/// status line of the answer, for example `HTTP/1.1 404 Not Found`, or the
+/// connection error.
+pub fn raw_status_line(port: Int, request: String) -> Result(String, String) {
+  case raw_request(port, <<request:utf8>>) {
+    Ok(answer) -> Ok(first_line(to_text(answer)))
+    Error(reason) -> Error(to_text(reason))
+  }
+}
+
+fn first_line(text: String) -> String {
+  string.split(text, "\r\n")
+  |> list.first
+  |> result.unwrap("")
+}
 
 /// Returns the URL of `path` on the local server at `port`.
 pub fn url(port: Int, path: String) -> String {

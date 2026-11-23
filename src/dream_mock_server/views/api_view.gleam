@@ -1,5 +1,4 @@
-//// Formats the bodies of the endpoints in
-//// `dream_mock_server/controllers/api_controller`.
+//// Formats the bodies of the built-in endpoints that do not stream.
 ////
 //// Each function returns a string. JSON functions return compact JSON with the
 //// fields in a fixed order.

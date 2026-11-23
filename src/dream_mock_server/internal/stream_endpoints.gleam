@@ -1,24 +1,21 @@
-//// Controllers for the info page and the streaming endpoints.
+//// The info page and the streaming endpoints.
 ////
-//// `router.create_router` sends requests to these functions. Each streaming
-//// controller returns a `Stream` body that makes its chunks with fixed content
-//// and fixed delays, so a test of an HTTP client gets the same chunks in each
-//// run. The process that sends the response sleeps between the chunks.
+//// `dream_mock_server/internal/routes` sends requests to these functions.
+//// Each streaming endpoint returns a `Stream` body that makes its chunks with
+//// fixed content and fixed delays, so a test of an HTTP client gets the same
+//// chunks in each run. The process that sends the response sleeps between the
+//// chunks.
 
-import dream/context.{type EmptyContext}
-import dream/http/header.{Header}
-import dream/http/request.{type Request}
-import dream/http/response.{type Response, stream_response, text_response}
-import dream/http/status
-import dream/router.{type EmptyServices}
 import dream_mock_server/compression
+import dream_mock_server/internal/message.{
+  type Request, type Response, Response, Stream, stream_response, text_response,
+}
 import dream_mock_server/views/index_view
 import gleam/bit_array
 import gleam/erlang/process
 import gleam/int
 import gleam/json
 import gleam/list
-import gleam/option
 import gleam/yielder
 
 /// Handles `GET /`: returns a text page that lists the endpoints.
@@ -26,8 +23,6 @@ import gleam/yielder
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
@@ -37,12 +32,8 @@ import gleam/yielder
 /// ## See Also
 ///
 /// - `dream_mock_server/views/index_view.format_index`
-pub fn index(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  text_response(status.ok, index_view.format_index())
+pub fn index(_request: Request) -> Response {
+  text_response(200, index_view.format_index())
 }
 
 /// Handles `GET /stream/fast`: streams 10 chunks, one each 100 ms.
@@ -53,22 +44,16 @@ pub fn index(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with `Content-Type: text/plain` and a `Stream` body.
-pub fn stream_fast(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn stream_fast(_request: Request) -> Response {
   let stream =
     yielder.range(1, 10)
     |> yielder.map(create_fast_chunk)
 
-  stream_response(status.ok, stream, "text/plain")
+  stream_response(200, stream, "text/plain")
 }
 
 fn create_fast_chunk(n: Int) -> BitArray {
@@ -85,22 +70,16 @@ fn create_fast_chunk(n: Int) -> BitArray {
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with `Content-Type: text/plain` and a `Stream` body.
-pub fn stream_slow(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn stream_slow(_request: Request) -> Response {
   let stream =
     yielder.range(1, 5)
     |> yielder.map(create_slow_chunk)
 
-  stream_response(status.ok, stream, "text/plain")
+  stream_response(200, stream, "text/plain")
 }
 
 fn create_slow_chunk(n: Int) -> BitArray {
@@ -118,17 +97,11 @@ fn create_slow_chunk(n: Int) -> BitArray {
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with `Content-Type: text/plain` and a `Stream` body.
-pub fn stream_burst(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn stream_burst(_request: Request) -> Response {
   // Fixed pattern: 7 chunks with varying delays for deterministic testing
   let delays = [100, 500, 200, 400, 100, 300, 200]
 
@@ -137,7 +110,7 @@ pub fn stream_burst(
     |> yielder.from_list
     |> yielder.map(create_burst_chunk)
 
-  stream_response(status.ok, stream, "text/plain")
+  stream_response(200, stream, "text/plain")
 }
 
 fn create_indexed_delay(delay: Int, idx: Int) -> #(Int, Int) {
@@ -159,23 +132,17 @@ fn create_burst_chunk(pair: #(Int, Int)) -> BitArray {
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 500 with `Content-Type: text/plain` and a `Stream` body.
-pub fn stream_error(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn stream_error(_request: Request) -> Response {
   let stream =
     yielder.range(1, 3)
     |> yielder.map(create_error_chunk)
 
   // Return 500 status with partial content to simulate mid-stream error
-  stream_response(status.internal_server_error, stream, "text/plain")
+  stream_response(500, stream, "text/plain")
 }
 
 fn create_error_chunk(n: Int) -> BitArray {
@@ -195,18 +162,12 @@ fn create_error_chunk(n: Int) -> BitArray {
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with `Content-Type: text/plain` and a `Stream` body that
 /// panics after its second chunk.
-pub fn stream_drop(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn stream_drop(_request: Request) -> Response {
   let stream =
     yielder.range(1, 5)
     |> yielder.map(fn(n) {
@@ -220,7 +181,7 @@ pub fn stream_drop(
       }
     })
 
-  stream_response(status.ok, stream, "text/plain")
+  stream_response(200, stream, "text/plain")
 }
 
 /// Handles `GET /stream/huge`: streams 100 chunks, one each 10 ms.
@@ -231,22 +192,16 @@ pub fn stream_drop(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with `Content-Type: text/plain` and a `Stream` body.
-pub fn stream_huge(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn stream_huge(_request: Request) -> Response {
   let stream =
     yielder.range(1, 100)
     |> yielder.map(create_huge_chunk)
 
-  stream_response(status.ok, stream, "text/plain")
+  stream_response(200, stream, "text/plain")
 }
 
 fn create_huge_chunk(n: Int) -> BitArray {
@@ -263,22 +218,16 @@ fn create_huge_chunk(n: Int) -> BitArray {
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with `Content-Type: application/json` and a `Stream` body.
-pub fn stream_json(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn stream_json(_request: Request) -> Response {
   let stream =
     yielder.range(1, 5)
     |> yielder.map(create_json_chunk)
 
-  stream_response(status.ok, stream, "application/json")
+  stream_response(200, stream, "application/json")
 }
 
 fn create_json_chunk(n: Int) -> BitArray {
@@ -302,23 +251,17 @@ fn create_json_chunk(n: Int) -> BitArray {
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with `Content-Type: application/octet-stream` and a `Stream`
 /// body.
-pub fn stream_binary(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn stream_binary(_request: Request) -> Response {
   let stream =
     yielder.range(0, 255)
     |> yielder.map(create_binary_chunk)
 
-  stream_response(status.ok, stream, "application/octet-stream")
+  stream_response(200, stream, "application/octet-stream")
 }
 
 fn create_binary_chunk(n: Int) -> BitArray {
@@ -335,8 +278,6 @@ fn create_binary_chunk(n: Int) -> BitArray {
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
@@ -346,11 +287,7 @@ fn create_binary_chunk(n: Int) -> BitArray {
 /// ## See Also
 ///
 /// - `dream_mock_server/compression.gzip_compress_chunks`
-pub fn stream_gzip(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn stream_gzip(_request: Request) -> Response {
   let plain_chunks =
     yielder.range(1, 5)
     |> yielder.map(fn(n) {
@@ -367,15 +304,13 @@ pub fn stream_gzip(
       chunk
     })
 
-  response.Response(
-    status: status.ok,
-    body: response.Stream(stream),
+  Response(
+    status: 200,
     headers: [
-      Header("Content-Type", "text/plain"),
-      Header("Content-Encoding", "gzip"),
+      #("content-type", "text/plain"),
+      #("content-encoding", "gzip"),
     ],
-    cookies: [],
-    content_type: option.Some("text/plain"),
+    body: Stream(stream),
   )
 }
 
@@ -387,8 +322,6 @@ pub fn stream_gzip(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
@@ -398,11 +331,7 @@ pub fn stream_gzip(
 /// ## See Also
 ///
 /// - `dream_mock_server/compression.deflate_compress_chunks`
-pub fn stream_deflate(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn stream_deflate(_request: Request) -> Response {
   let plain_chunks =
     yielder.range(1, 5)
     |> yielder.map(fn(n) {
@@ -419,15 +348,13 @@ pub fn stream_deflate(
       chunk
     })
 
-  response.Response(
-    status: status.ok,
-    body: response.Stream(stream),
+  Response(
+    status: 200,
     headers: [
-      Header("Content-Type", "text/plain"),
-      Header("Content-Encoding", "deflate"),
+      #("content-type", "text/plain"),
+      #("content-encoding", "deflate"),
     ],
-    cookies: [],
-    content_type: option.Some("text/plain"),
+    body: Stream(stream),
   )
 }
 
@@ -440,18 +367,12 @@ pub fn stream_deflate(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with the headers `Content-Type: text/plain` and
 /// `Content-Encoding: br`, and a `Stream` body.
-pub fn stream_unknown_encoding(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn stream_unknown_encoding(_request: Request) -> Response {
   let stream =
     yielder.range(1, 5)
     |> yielder.map(fn(n) {
@@ -459,14 +380,12 @@ pub fn stream_unknown_encoding(
       bit_array.from_string("Raw " <> int.to_string(n) <> "\n")
     })
 
-  response.Response(
-    status: status.ok,
-    body: response.Stream(stream),
+  Response(
+    status: 200,
     headers: [
-      Header("Content-Type", "text/plain"),
-      Header("Content-Encoding", "br"),
+      #("content-type", "text/plain"),
+      #("content-encoding", "br"),
     ],
-    cookies: [],
-    content_type: option.Some("text/plain"),
+    body: Stream(stream),
   )
 }

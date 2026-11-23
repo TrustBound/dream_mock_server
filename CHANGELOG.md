@@ -10,8 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Moved to its own repository
-- Needs dream 3.0.0 or later. A major version, because a project on dream 2 cannot use it.
+- Built directly on `dream_http_server`. It no longer depends on the Dream web framework, so a project on any Dream version, or on no Dream at all, can use it.
+- `server.ServerHandle` is now the mock server's own opaque type. `start`, `start_with_config` and `stop` work as before: `stop` returns when the server is down and its port is closed, and a second call does nothing.
+- `MockRoute.method` is now an `Option` of `gleam/http.Method`. Import the methods from `gleam/http`, for example `import gleam/http.{Get, Post}`.
+- Every endpoint answers as before, with the same status, headers, body bytes, chunks and timing.
 - The integration scenarios run on dream_test's Gherkin support inside `gleam test`. Elixir is no longer needed.
+
+### Removed
+
+- `router.create_router` and `router.create_config_router`. Use `server.start` and `server.start_with_config`.
+- `config.MockConfigContext`.
+- The public controller modules `controllers/api_controller`, `controllers/config_controller` and `controllers/stream_controller`. The endpoints are now internal modules.
+
+### Testing
+
+- 233 tests run, 0 failed, in about 58 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (306 of 306 lines).
+- Each of 55 recorded requests, one or more for each endpoint, gets the same raw HTTP answer as before the move to `dream_http_server`.
 
 ## [1.1.1] - 2026-03-03
 

@@ -8,9 +8,10 @@ links = [
     { title = "GitHub", href = "https://github.com/TrustBound/dream_mock_server" },
 ]
 
+internal_modules = ["dream_mock_server/internal", "dream_mock_server/internal/*"]
+
 [dependencies]
-# Switched to a Hex version range once it is published.
-dream = { git = "https://github.com/TrustBound/dream.git", ref = "c916b5a9652d2d0188e69c5236cda7f7c449ab0d" }
+dream_http_server = ">= 1.3.1 and < 2.0.0"
 gleam_erlang = ">= 1.0.0 and < 2.0.0"
 gleam_http = ">= 4.0.0 and < 5.0.0"
 gleam_json = ">= 2.2.0 and < 4.0.0"

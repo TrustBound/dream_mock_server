@@ -1,7 +1,7 @@
 //// README: Exact + method-specific example
 
-import dream/http/request.{Get, Post}
 import dream_mock_server/config.{type MockRoute, Exact, MockRoute}
+import gleam/http.{Get, Post}
 import gleam/option.{Some}
 
 // GET /resource  -> 200 {"ok":true}

@@ -12,11 +12,9 @@
 //// ```
 ////
 //// The server listens on `http://localhost:3004/` until you stop it.
-//// `GET /` lists the endpoints. `dream_mock_server/router.create_router`
-//// describes each one.
+//// `GET /` lists the endpoints.
 
-import dream/servers/mist/server.{bind, listen, router} as dream
-import dream_mock_server/router.{create_router}
+import dream_mock_server/internal/standalone_runner
 
 /// Starts the mock server with the built-in endpoints on `localhost:3004`.
 ///
@@ -26,9 +24,6 @@ import dream_mock_server/router.{create_router}
 ///
 /// Panics when the server cannot listen on port 3004, for example when
 /// another process uses the port.
-pub fn main() {
-  dream.new()
-  |> router(create_router())
-  |> bind("localhost")
-  |> listen(3004)
+pub fn main() -> Nil {
+  standalone_runner.serve_forever(3004)
 }

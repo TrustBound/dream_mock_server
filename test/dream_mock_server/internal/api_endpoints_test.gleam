@@ -1,20 +1,19 @@
-import dream/context.{EmptyContext}
-import dream/http/header.{Header}
-import dream/http/request.{Bytes, Delete, Get, Patch, Post, Put, Request, Text}
-import dream/http/response.{Response, json_response, text_response}
-import dream/router.{EmptyServices}
 import dream_mock_server/compression
-import dream_mock_server/controllers/api_controller
+import dream_mock_server/internal/api_endpoints
+import dream_mock_server/internal/message.{
+  Bytes, Request, Response, json_response, text_response,
+}
 import dream_test/matchers.{be_equal, or_fail_with, should}
 import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
 import fixtures/request as test_request
 import fixtures/response.{create_redirect_response} as _test_response
+import gleam/http.{Delete, Get, Patch, Post, Put}
 import gleam/option.{Some}
 import gleam/string
 
 pub fn tests() -> TestSuite {
-  describe("dream_mock_server/controllers/api_controller", [
+  describe("dream_mock_server/internal/api_endpoints", [
     get_tests(),
     post_tests(),
     put_tests(),
@@ -35,10 +34,10 @@ fn get_tests() {
     it("returns the path and query as JSON", fn() {
       // Arrange
       let request =
-        Request(..test_request.create_request(Get, "/get"), query: "a=1")
+        Request(..test_request.create_request(Get, "/get"), query: Some("a=1"))
 
       // Act
-      let response = api_controller.get(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.get(request)
 
       // Assert
       response
@@ -57,10 +56,12 @@ fn post_tests() {
     it("returns 201 with the text body echoed as JSON", fn() {
       // Arrange
       let request =
-        Request(..test_request.create_request(Post, "/post"), body: Text("hi"))
+        Request(..test_request.create_request(Post, "/post"), body: <<
+          "hi":utf8,
+        >>)
 
       // Act
-      let response = api_controller.post(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.post(request)
 
       // Assert
       response
@@ -74,13 +75,10 @@ fn post_tests() {
     it("returns 400 when the body is not UTF-8 text", fn() {
       // Arrange
       let request =
-        Request(
-          ..test_request.create_request(Post, "/post"),
-          body: Bytes(<<255, 254>>),
-        )
+        Request(..test_request.create_request(Post, "/post"), body: <<255, 254>>)
 
       // Act
-      let response = api_controller.post(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.post(request)
 
       // Assert
       response
@@ -99,10 +97,10 @@ fn put_tests() {
     it("returns 200 with the text body echoed as JSON", fn() {
       // Arrange
       let request =
-        Request(..test_request.create_request(Put, "/put"), body: Text("hi"))
+        Request(..test_request.create_request(Put, "/put"), body: <<"hi":utf8>>)
 
       // Act
-      let response = api_controller.put(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.put(request)
 
       // Assert
       response
@@ -116,13 +114,10 @@ fn put_tests() {
     it("returns 400 when the body is not UTF-8 text", fn() {
       // Arrange
       let request =
-        Request(
-          ..test_request.create_request(Put, "/put"),
-          body: Bytes(<<255, 254>>),
-        )
+        Request(..test_request.create_request(Put, "/put"), body: <<255, 254>>)
 
       // Act
-      let response = api_controller.put(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.put(request)
 
       // Assert
       response
@@ -141,13 +136,12 @@ fn patch_tests() {
     it("returns 200 with the text body echoed as JSON", fn() {
       // Arrange
       let request =
-        Request(
-          ..test_request.create_request(Patch, "/patch"),
-          body: Text("hi"),
-        )
+        Request(..test_request.create_request(Patch, "/patch"), body: <<
+          "hi":utf8,
+        >>)
 
       // Act
-      let response = api_controller.patch(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.patch(request)
 
       // Assert
       response
@@ -161,13 +155,13 @@ fn patch_tests() {
     it("returns 400 when the body is not UTF-8 text", fn() {
       // Arrange
       let request =
-        Request(
-          ..test_request.create_request(Patch, "/patch"),
-          body: Bytes(<<255, 254>>),
-        )
+        Request(..test_request.create_request(Patch, "/patch"), body: <<
+          255,
+          254,
+        >>)
 
       // Act
-      let response = api_controller.patch(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.patch(request)
 
       // Assert
       response
@@ -188,7 +182,7 @@ fn delete_tests() {
       let request = test_request.create_request(Delete, "/delete")
 
       // Act
-      let response = api_controller.delete(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.delete(request)
 
       // Assert
       response
@@ -204,15 +198,12 @@ fn delete_tests() {
 
 fn status_tests() {
   group("status", [
-    it("returns the status code of the code parameter", fn() {
+    it("returns the status code of the last path segment", fn() {
       // Arrange
-      let request =
-        Request(..test_request.create_request(Get, "/status/418"), params: [
-          #("code", "418"),
-        ])
+      let request = test_request.create_request(Get, "/status/418")
 
       // Act
-      let response = api_controller.status(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.status(request)
 
       // Assert
       response
@@ -220,15 +211,12 @@ fn status_tests() {
       |> be_equal(json_response(418, "{\"status\":418}"))
       |> or_fail_with("Expected 418 with the status JSON")
     }),
-    it("returns 400 when the code parameter is not an integer", fn() {
+    it("returns 400 when the last path segment is not an integer", fn() {
       // Arrange
-      let request =
-        Request(..test_request.create_request(Get, "/status/abc"), params: [
-          #("code", "abc"),
-        ])
+      let request = test_request.create_request(Get, "/status/abc")
 
       // Act
-      let response = api_controller.status(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.status(request)
 
       // Assert
       response
@@ -236,18 +224,18 @@ fn status_tests() {
       |> be_equal(json_response(400, "{\"error\":\"code must be an integer\"}"))
       |> or_fail_with("Expected 400 for a code that is not an integer")
     }),
-    it("returns 400 when the code parameter is missing", fn() {
+    it("ignores a file extension on the code", fn() {
       // Arrange
-      let request = test_request.create_request(Get, "/status")
+      let request = test_request.create_request(Get, "/status/418.json")
 
       // Act
-      let response = api_controller.status(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.status(request)
 
       // Assert
       response
       |> should
-      |> be_equal(json_response(400, "{\"error\":\"Missing code parameter\"}"))
-      |> or_fail_with("Expected 400 for a missing code")
+      |> be_equal(json_response(418, "{\"status\":418}"))
+      |> or_fail_with("Expected 418 with the status JSON")
     }),
   ])
 }
@@ -259,8 +247,7 @@ fn simple_endpoint_tests() {
       let request = test_request.create_request(Get, "/json")
 
       // Act
-      let response =
-        api_controller.json_endpoint(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.json_endpoint(request)
 
       // Assert
       response
@@ -276,7 +263,7 @@ fn simple_endpoint_tests() {
       let request = test_request.create_request(Get, "/text")
 
       // Act
-      let response = api_controller.text(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.text(request)
 
       // Assert
       response
@@ -289,7 +276,7 @@ fn simple_endpoint_tests() {
       let request = test_request.create_request(Get, "/uuid")
 
       // Act
-      let response = api_controller.uuid(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.uuid(request)
 
       // Assert
       response
@@ -306,7 +293,7 @@ fn simple_endpoint_tests() {
       let line = "This is a repeated line to create a large response body.\n"
 
       // Act
-      let response = api_controller.large(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.large(request)
 
       // Assert
       response
@@ -319,7 +306,7 @@ fn simple_endpoint_tests() {
       let request = test_request.create_request(Get, "/empty")
 
       // Act
-      let response = api_controller.empty(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.empty(request)
 
       // Assert
       response
@@ -332,7 +319,7 @@ fn simple_endpoint_tests() {
       let request = test_request.create_request(Get, "/slow")
 
       // Act
-      let response = api_controller.slow(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.slow(request)
 
       // Assert
       response
@@ -348,14 +335,12 @@ fn content_type_tests() {
     it("returns the Content-Type of the request", fn() {
       // Arrange
       let request =
-        Request(
-          ..test_request.create_request(Post, "/content-type"),
-          content_type: Some("application/xml"),
-        )
+        Request(..test_request.create_request(Post, "/content-type"), headers: [
+          #("content-type", "application/xml"),
+        ])
 
       // Act
-      let response =
-        api_controller.content_type(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.content_type(request)
 
       // Assert
       response
@@ -368,8 +353,7 @@ fn content_type_tests() {
       let request = test_request.create_request(Post, "/content-type")
 
       // Act
-      let response =
-        api_controller.content_type(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.content_type(request)
 
       // Assert
       response
@@ -387,22 +371,18 @@ fn compression_endpoint_tests() {
       let request = test_request.create_request(Get, "/gzip")
 
       // Act
-      let response = api_controller.gzip(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.gzip(request)
 
       // Assert
       response
       |> should
       |> be_equal(Response(
         status: 200,
-        body: response.Bytes(
-          compression.gzip_compress(<<"Hello, World!":utf8>>),
-        ),
         headers: [
-          Header("Content-Type", "text/plain"),
-          Header("Content-Encoding", "gzip"),
+          #("content-type", "text/plain"),
+          #("content-encoding", "gzip"),
         ],
-        cookies: [],
-        content_type: Some("text/plain"),
+        body: Bytes(compression.gzip_compress(<<"Hello, World!":utf8>>)),
       ))
       |> or_fail_with("Expected the gzip response")
     }),
@@ -411,23 +391,18 @@ fn compression_endpoint_tests() {
       let request = test_request.create_request(Get, "/deflate")
 
       // Act
-      let response =
-        api_controller.deflate(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.deflate(request)
 
       // Assert
       response
       |> should
       |> be_equal(Response(
         status: 200,
-        body: response.Bytes(
-          compression.deflate_compress(<<"Hello, World!":utf8>>),
-        ),
         headers: [
-          Header("Content-Type", "text/plain"),
-          Header("Content-Encoding", "deflate"),
+          #("content-type", "text/plain"),
+          #("content-encoding", "deflate"),
         ],
-        cookies: [],
-        content_type: Some("text/plain"),
+        body: Bytes(compression.deflate_compress(<<"Hello, World!":utf8>>)),
       ))
       |> or_fail_with("Expected the deflate response")
     }),
@@ -436,21 +411,18 @@ fn compression_endpoint_tests() {
       let request = test_request.create_request(Get, "/identity")
 
       // Act
-      let response =
-        api_controller.identity(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.identity(request)
 
       // Assert
       response
       |> should
       |> be_equal(Response(
         status: 200,
-        body: response.Text("Hello, World!"),
         headers: [
-          Header("Content-Type", "text/plain; charset=utf-8"),
-          Header("Content-Encoding", "identity"),
+          #("content-type", "text/plain; charset=utf-8"),
+          #("content-encoding", "identity"),
         ],
-        cookies: [],
-        content_type: Some("text/plain; charset=utf-8"),
+        body: Bytes(<<"Hello, World!":utf8>>),
       ))
       |> or_fail_with("Expected the identity response")
     }),
@@ -459,21 +431,18 @@ fn compression_endpoint_tests() {
       let request = test_request.create_request(Get, "/unknown-encoding")
 
       // Act
-      let response =
-        api_controller.unknown_encoding(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.unknown_encoding(request)
 
       // Assert
       response
       |> should
       |> be_equal(Response(
         status: 200,
-        body: response.Text("raw-uncompressed-bytes"),
         headers: [
-          Header("Content-Type", "text/plain; charset=utf-8"),
-          Header("Content-Encoding", "br"),
+          #("content-type", "text/plain; charset=utf-8"),
+          #("content-encoding", "br"),
         ],
-        cookies: [],
-        content_type: Some("text/plain; charset=utf-8"),
+        body: Bytes(<<"raw-uncompressed-bytes":utf8>>),
       ))
       |> or_fail_with("Expected the br response")
     }),
@@ -482,21 +451,18 @@ fn compression_endpoint_tests() {
       let request = test_request.create_request(Get, "/corrupted-gzip")
 
       // Act
-      let response =
-        api_controller.corrupted_gzip(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.corrupted_gzip(request)
 
       // Assert
       response
       |> should
       |> be_equal(Response(
         status: 200,
-        body: response.Bytes(<<"this is not valid gzip data at all":utf8>>),
         headers: [
-          Header("Content-Type", "text/plain"),
-          Header("Content-Encoding", "gzip"),
+          #("content-type", "text/plain"),
+          #("content-encoding", "gzip"),
         ],
-        cookies: [],
-        content_type: Some("text/plain"),
+        body: Bytes(<<"this is not valid gzip data at all":utf8>>),
       ))
       |> or_fail_with("Expected the corrupted gzip response")
     }),
@@ -510,18 +476,15 @@ fn raw_body_endpoint_tests() {
       let request = test_request.create_request(Get, "/non-utf8-error")
 
       // Act
-      let response =
-        api_controller.non_utf8_error(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.non_utf8_error(request)
 
       // Assert
       response
       |> should
       |> be_equal(Response(
         status: 400,
-        body: response.Bytes(<<"Error: ":utf8, 192, 193, 254, 255>>),
-        headers: [Header("Content-Type", "text/plain")],
-        cookies: [],
-        content_type: Some("text/plain"),
+        headers: [#("content-type", "text/plain")],
+        body: Bytes(<<"Error: ":utf8, 192, 193, 254, 255>>),
       ))
       |> or_fail_with("Expected 400 with the bytes that are not UTF-8")
     }),
@@ -536,17 +499,12 @@ fn echo_accept_encoding_tests() {
         Request(
           ..test_request.create_request(Get, "/echo-accept-encoding"),
           headers: [
-            Header("ACCEPT-ENCODING", "gzip, deflate"),
+            #("accept-encoding", "gzip, deflate"),
           ],
         )
 
       // Act
-      let response =
-        api_controller.echo_accept_encoding(
-          request,
-          EmptyContext,
-          EmptyServices,
-        )
+      let response = api_endpoints.echo_accept_encoding(request)
 
       // Assert
       response
@@ -559,12 +517,7 @@ fn echo_accept_encoding_tests() {
       let request = test_request.create_request(Get, "/echo-accept-encoding")
 
       // Act
-      let response =
-        api_controller.echo_accept_encoding(
-          request,
-          EmptyContext,
-          EmptyServices,
-        )
+      let response = api_endpoints.echo_accept_encoding(request)
 
       // Assert
       response
@@ -582,8 +535,7 @@ fn redirect_tests() {
       let request = test_request.create_request(Get, "/redirect/301")
 
       // Act
-      let response =
-        api_controller.redirect_301(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.redirect_301(request)
 
       // Assert
       response
@@ -596,8 +548,7 @@ fn redirect_tests() {
       let request = test_request.create_request(Get, "/redirect/302")
 
       // Act
-      let response =
-        api_controller.redirect_302(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.redirect_302(request)
 
       // Assert
       response
@@ -610,8 +561,7 @@ fn redirect_tests() {
       let request = test_request.create_request(Get, "/redirect/303")
 
       // Act
-      let response =
-        api_controller.redirect_303(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.redirect_303(request)
 
       // Assert
       response
@@ -624,8 +574,7 @@ fn redirect_tests() {
       let request = test_request.create_request(Get, "/redirect/307")
 
       // Act
-      let response =
-        api_controller.redirect_307(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.redirect_307(request)
 
       // Assert
       response
@@ -638,8 +587,7 @@ fn redirect_tests() {
       let request = test_request.create_request(Get, "/redirect/308")
 
       // Act
-      let response =
-        api_controller.redirect_308(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.redirect_308(request)
 
       // Assert
       response
@@ -652,8 +600,7 @@ fn redirect_tests() {
       let request = test_request.create_request(Get, "/redirect/chain")
 
       // Act
-      let response =
-        api_controller.redirect_chain(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.redirect_chain(request)
 
       // Assert
       response
@@ -666,8 +613,7 @@ fn redirect_tests() {
       let request = test_request.create_request(Get, "/redirect/chain/2")
 
       // Act
-      let response =
-        api_controller.redirect_chain_2(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.redirect_chain_2(request)
 
       // Assert
       response
@@ -681,13 +627,12 @@ fn redirect_tests() {
         Request(
           ..test_request.create_request(Get, "/redirect/absolute"),
           headers: [
-            Header("Host", "example.test:8080"),
+            #("host", "example.test:8080"),
           ],
         )
 
       // Act
-      let response =
-        api_controller.redirect_absolute(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.redirect_absolute(request)
 
       // Assert
       response
@@ -700,8 +645,7 @@ fn redirect_tests() {
       let request = test_request.create_request(Get, "/redirect/absolute")
 
       // Act
-      let response =
-        api_controller.redirect_absolute(request, EmptyContext, EmptyServices)
+      let response = api_endpoints.redirect_absolute(request)
 
       // Assert
       response

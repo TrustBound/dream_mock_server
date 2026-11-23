@@ -4,10 +4,14 @@
 
 import config_mode_test
 import dream_mock_server/compression_test
-import dream_mock_server/controllers/api_controller_test
-import dream_mock_server/controllers/config_controller_test
-import dream_mock_server/controllers/stream_controller_test
-import dream_mock_server/router_test
+import dream_mock_server/internal/api_endpoints_test
+import dream_mock_server/internal/config_endpoint_test
+import dream_mock_server/internal/message_test
+import dream_mock_server/internal/mist_adapter_test
+import dream_mock_server/internal/path_test
+import dream_mock_server/internal/routes_test
+import dream_mock_server/internal/standalone_runner_test
+import dream_mock_server/internal/stream_endpoints_test
 import dream_mock_server/views/api_view_test
 import dream_mock_server/views/index_view_test
 import dream_test/coverage
@@ -25,10 +29,14 @@ pub fn main() {
     api_view_test.tests(),
     index_view_test.tests(),
     compression_test.tests(),
-    api_controller_test.tests(),
-    config_controller_test.tests(),
-    stream_controller_test.tests(),
-    router_test.tests(),
+    path_test.tests(),
+    message_test.tests(),
+    api_endpoints_test.tests(),
+    config_endpoint_test.tests(),
+    stream_endpoints_test.tests(),
+    routes_test.tests(),
+    mist_adapter_test.tests(),
+    standalone_runner_test.tests(),
     server_test.tests(),
     config_mode_test.tests(),
     standalone_test.tests(),

@@ -1,23 +1,13 @@
 //// README: Non-Streaming Technique
 
-import dream/context.{type EmptyContext}
-import dream/http/request.{type Request}
-import dream/http/response.{type Response, json_response}
-import dream/http/status
-import dream/router.{type EmptyServices}
 import gleam/json
 
-pub fn get(
-  request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  let body =
-    json.object([
-      #("method", json.string("GET")),
-      #("url", json.string(request.path)),
-    ])
-    |> json.to_string
-
-  json_response(status.ok, body)
+/// The JSON body of an echo answer: the method and the path of the request
+/// in one object, for example `{"method":"DELETE","url":"/delete"}`.
+pub fn echo_body(method: String, path: String) -> String {
+  json.object([
+    #("method", json.string(method)),
+    #("url", json.string(path)),
+  ])
+  |> json.to_string
 }

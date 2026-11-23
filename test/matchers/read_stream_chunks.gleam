@@ -1,6 +1,6 @@
 //// Reads every chunk of a streamed response body.
 
-import dream/http/response.{type Response, type ResponseBody, Stream}
+import dream_mock_server/internal/message.{type Body, type Response, Stream}
 import dream_test/types.{
   type MatchResult, AssertionFailure, CustomMatcherFailure, MatchFailed, MatchOk,
 }
@@ -18,7 +18,7 @@ pub fn read_stream_chunks(
   }
 }
 
-fn read_body(body: ResponseBody) -> MatchResult(List(BitArray)) {
+fn read_body(body: Body) -> MatchResult(List(BitArray)) {
   case body {
     Stream(chunks) -> MatchOk(yielder.to_list(chunks))
     _not_a_stream -> not_a_stream_failure()

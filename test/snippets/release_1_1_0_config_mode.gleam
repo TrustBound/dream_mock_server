@@ -2,7 +2,6 @@
 ////
 //// One prefix route for any method, started with start_with_config.
 
-import dream/servers/mist/server as dream_server
 import dream_mock_server/config.{MockRoute, Prefix}
 import dream_mock_server/server
 import gleam/option.{None}
@@ -10,7 +9,7 @@ import gleam/otp/actor
 
 pub fn start_chat_mock(
   port: Int,
-) -> Result(dream_server.ServerHandle, actor.StartError) {
+) -> Result(server.ServerHandle, actor.StartError) {
   let config = [
     MockRoute(
       path: "/v1/chat/completions",

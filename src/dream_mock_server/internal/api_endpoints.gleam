@@ -1,24 +1,25 @@
-//// Controllers for the endpoints that do not stream.
+//// The endpoints that do not stream.
 ////
-//// `router.create_router` sends requests to these functions. Each one builds
-//// a fixed, predictable response, so a test of an HTTP client can compare the
-//// result exactly. The views in `dream_mock_server/views/api_view` format the
-//// JSON bodies.
+//// `dream_mock_server/internal/routes` sends requests to these functions.
+//// Each one builds a fixed, predictable response, so a test of an HTTP client
+//// can compare the result exactly. The views in
+//// `dream_mock_server/views/api_view` format the JSON bodies.
 ////
-//// Every controller takes the Dream controller arguments: the request, an
-//// `EmptyContext` and `EmptyServices`. Most of them do not read the request.
+//// Every endpoint takes a `Request` and returns a `Response`. Most of them do
+//// not read the request.
 
-import dream/context.{type EmptyContext}
-import dream/http/header.{Header}
-import dream/http/request.{type Request, body_as_string, get_int_param}
-import dream/http/response.{type Response, json_response, text_response}
-import dream/http/status
-import dream/router.{type EmptyServices}
 import dream_mock_server/compression
+import dream_mock_server/internal/message.{
+  type Request, type Response, Bytes, Response, json_response, text_response,
+}
+import dream_mock_server/internal/path
 import dream_mock_server/views/api_view
+import gleam/bit_array
 import gleam/erlang/process
+import gleam/int
 import gleam/list
 import gleam/option
+import gleam/result
 import gleam/string
 
 /// Handles `GET /get`: returns the path and the query string as JSON.
@@ -28,20 +29,17 @@ import gleam/string
 /// ## Parameters
 ///
 /// - `request`: The request. Its `path` and raw `query` go into the JSON.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with an `application/json` body such as
 /// `{"method":"GET","url":"/get","query":"page=1","headers":[]}`.
 /// The `headers` field is always an empty list.
-pub fn get(
-  request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  json_response(status.ok, api_view.get_to_json(request.path, request.query))
+pub fn get(request: Request) -> Response {
+  json_response(
+    200,
+    api_view.get_to_json(request.path, option.unwrap(request.query, "")),
+  )
 }
 
 /// Handles `POST /post`: echoes the request body as JSON.
@@ -51,8 +49,6 @@ pub fn get(
 /// ## Parameters
 ///
 /// - `request`: The request. Its `path` and its body as UTF-8 text go into the JSON.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
@@ -63,12 +59,8 @@ pub fn get(
 ///
 /// When the body is not valid UTF-8 text, returns status 400 with the
 /// body `{"error":"Request body is not UTF-8 text"}`.
-pub fn post(
-  request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  echo_text_body(request, status.created, api_view.post_to_json)
+pub fn post(request: Request) -> Response {
+  echo_text_body(request, 201, api_view.post_to_json)
 }
 
 /// Handles `PUT /put`: echoes the request body as JSON.
@@ -78,8 +70,6 @@ pub fn post(
 /// ## Parameters
 ///
 /// - `request`: The request. Its `path` and its body as UTF-8 text go into the JSON.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
@@ -90,12 +80,8 @@ pub fn post(
 ///
 /// When the body is not valid UTF-8 text, returns status 400 with the
 /// body `{"error":"Request body is not UTF-8 text"}`.
-pub fn put(
-  request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  echo_text_body(request, status.ok, api_view.put_to_json)
+pub fn put(request: Request) -> Response {
+  echo_text_body(request, 200, api_view.put_to_json)
 }
 
 /// Handles `PATCH /patch`: echoes the request body as JSON.
@@ -105,8 +91,6 @@ pub fn put(
 /// ## Parameters
 ///
 /// - `request`: The request. Its `path` and its body as UTF-8 text go into the JSON.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
@@ -117,12 +101,8 @@ pub fn put(
 ///
 /// When the body is not valid UTF-8 text, returns status 400 with the
 /// body `{"error":"Request body is not UTF-8 text"}`.
-pub fn patch(
-  request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  echo_text_body(request, status.ok, api_view.patch_to_json)
+pub fn patch(request: Request) -> Response {
+  echo_text_body(request, 200, api_view.patch_to_json)
 }
 
 /// Echo a text request body as JSON, or reply 400 when the body is not text
@@ -131,11 +111,11 @@ fn echo_text_body(
   status_code: Int,
   format_echo: fn(String, String) -> String,
 ) -> Response {
-  case body_as_string(request) {
+  case bit_array.to_string(request.body) {
     Ok(body) -> json_response(status_code, format_echo(request.path, body))
     Error(Nil) ->
       json_response(
-        status.bad_request,
+        400,
         api_view.error_to_json("Request body is not UTF-8 text"),
       )
   }
@@ -146,19 +126,13 @@ fn echo_text_body(
 /// ## Parameters
 ///
 /// - `request`: The request. Its `path` goes into the JSON.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with the `application/json` body
 /// `{"method":"DELETE","url":"/delete"}`.
-pub fn delete(
-  request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  json_response(status.ok, api_view.delete_to_json(request.path))
+pub fn delete(request: Request) -> Response {
+  json_response(200, api_view.delete_to_json(request.path))
 }
 
 /// Handles `GET /status/:code`: returns a response with the status code of the path.
@@ -168,9 +142,9 @@ pub fn delete(
 ///
 /// ## Parameters
 ///
-/// - `request`: The request. Its `code` path parameter is the status to return.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
+/// - `request`: The request. The last segment of its path is the status to
+///   return. A file extension on that segment is ignored, so
+///   `/status/418.json` returns status 418.
 ///
 /// ## Returns
 ///
@@ -178,17 +152,18 @@ pub fn delete(
 ///
 /// ## Errors
 ///
-/// When `code` is missing or is not an integer, returns status 400 with
+/// When the last path segment is not an integer, returns status 400 with
 /// an `application/json` body such as `{"error":"code must be an integer"}`.
-pub fn status(
-  request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  case get_int_param(request, "code") {
+pub fn status(request: Request) -> Response {
+  let code_segment =
+    path.segments(request.path)
+    |> list.last
+    |> result.unwrap("")
+    |> path.strip_extension
+  case int.parse(code_segment) {
     Ok(code) -> json_response(code, api_view.status_to_json(code))
-    Error(error_msg) ->
-      json_response(status.bad_request, api_view.error_to_json(error_msg))
+    Error(Nil) ->
+      json_response(400, api_view.error_to_json("code must be an integer"))
   }
 }
 
@@ -197,19 +172,13 @@ pub fn status(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with the `application/json` body
 /// `{"message":"Hello, World!","success":true}`.
-pub fn json_endpoint(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  json_response(status.ok, api_view.simple_json_to_string())
+pub fn json_endpoint(_request: Request) -> Response {
+  json_response(200, api_view.simple_json_to_string())
 }
 
 /// Handles `GET /text`: returns a fixed plain-text greeting.
@@ -217,18 +186,12 @@ pub fn json_endpoint(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with the `text/plain; charset=utf-8` body `Hello, World!`.
-pub fn text(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  text_response(status.ok, api_view.text_to_string())
+pub fn text(_request: Request) -> Response {
+  text_response(200, api_view.text_to_string())
 }
 
 /// Handles `GET /uuid`: returns a fixed UUID as JSON.
@@ -238,19 +201,13 @@ pub fn text(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with the `application/json` body
 /// `{"uuid":"123e4567-e89b-12d3-a456-426614174000"}`.
-pub fn uuid(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  json_response(status.ok, api_view.uuid_to_json())
+pub fn uuid(_request: Request) -> Response {
+  json_response(200, api_view.uuid_to_json())
 }
 
 /// Handles `GET /large`: returns a body of about 1.1 MB.
@@ -260,22 +217,16 @@ pub fn uuid(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with a `text/plain; charset=utf-8` body of 20,000 copies of the
 /// line `This is a repeated line to create a large response body.`.
-pub fn large(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn large(_request: Request) -> Response {
   // Generate ~1MB of text data
   let chunk = "This is a repeated line to create a large response body.\n"
   let repeated = string.repeat(chunk, 20_000)
-  text_response(status.ok, repeated)
+  text_response(200, repeated)
 }
 
 /// Handles `GET /empty`: returns an empty body.
@@ -283,18 +234,12 @@ pub fn large(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with an empty `text/plain; charset=utf-8` body.
-pub fn empty(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  text_response(status.ok, "")
+pub fn empty(_request: Request) -> Response {
+  text_response(200, "")
 }
 
 /// Handles `GET /slow`: waits 5 seconds, then returns a short text.
@@ -305,20 +250,14 @@ pub fn empty(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with the `text/plain; charset=utf-8` body `Slow response`.
-pub fn slow(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn slow(_request: Request) -> Response {
   // Wait 5 seconds before responding
   process.sleep(5000)
-  text_response(status.ok, "Slow response")
+  text_response(200, "Slow response")
 }
 
 /// Handles `POST /content-type`: returns the `Content-Type` of the request as text.
@@ -327,21 +266,18 @@ pub fn slow(
 ///
 /// ## Parameters
 ///
-/// - `request`: The request. Its `content_type` is the body of the response.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
+/// - `request`: The request. The value of its `content-type` header is the
+///   body of the response.
 ///
 /// ## Returns
 ///
 /// Status 200 with a `text/plain; charset=utf-8` body that holds the
 /// `Content-Type` value, or an empty body when the request has none.
-pub fn content_type(
-  request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  let content_type = option.unwrap(request.content_type, "")
-  text_response(status.ok, content_type)
+pub fn content_type(request: Request) -> Response {
+  let content_type =
+    message.find_header(request, "content-type")
+    |> result.unwrap("")
+  text_response(200, content_type)
 }
 
 /// Handles `GET /gzip`: returns `Hello, World!` compressed with gzip.
@@ -351,28 +287,17 @@ pub fn content_type(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with the headers `Content-Type: text/plain` and
 /// `Content-Encoding: gzip`, and the gzip bytes of `Hello, World!` as the body.
-pub fn gzip(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn gzip(_request: Request) -> Response {
   let body = compression.gzip_compress(<<"Hello, World!":utf8>>)
-  response.Response(
-    status: status.ok,
-    body: response.Bytes(body),
-    headers: [
-      Header("Content-Type", "text/plain"),
-      Header("Content-Encoding", "gzip"),
-    ],
-    cookies: [],
-    content_type: option.Some("text/plain"),
+  Response(
+    status: 200,
+    headers: [#("content-type", "text/plain"), #("content-encoding", "gzip")],
+    body: Bytes(body),
   )
 }
 
@@ -383,28 +308,17 @@ pub fn gzip(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with the headers `Content-Type: text/plain` and
 /// `Content-Encoding: deflate`, and the zlib bytes of `Hello, World!` as the body.
-pub fn deflate(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn deflate(_request: Request) -> Response {
   let body = compression.deflate_compress(<<"Hello, World!":utf8>>)
-  response.Response(
-    status: status.ok,
-    body: response.Bytes(body),
-    headers: [
-      Header("Content-Type", "text/plain"),
-      Header("Content-Encoding", "deflate"),
-    ],
-    cookies: [],
-    content_type: option.Some("text/plain"),
+  Response(
+    status: 200,
+    headers: [#("content-type", "text/plain"), #("content-encoding", "deflate")],
+    body: Bytes(body),
   )
 }
 
@@ -415,27 +329,19 @@ pub fn deflate(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with the headers `Content-Type: text/plain; charset=utf-8` and
 /// `Content-Encoding: identity`, and the body `Hello, World!`.
-pub fn identity(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  response.Response(
-    status: status.ok,
-    body: response.Text("Hello, World!"),
+pub fn identity(_request: Request) -> Response {
+  Response(
+    status: 200,
     headers: [
-      Header("Content-Type", "text/plain; charset=utf-8"),
-      Header("Content-Encoding", "identity"),
+      #("content-type", "text/plain; charset=utf-8"),
+      #("content-encoding", "identity"),
     ],
-    cookies: [],
-    content_type: option.Some("text/plain; charset=utf-8"),
+    body: Bytes(<<"Hello, World!":utf8>>),
   )
 }
 
@@ -447,27 +353,19 @@ pub fn identity(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with the headers `Content-Type: text/plain; charset=utf-8` and
 /// `Content-Encoding: br`, and the body `raw-uncompressed-bytes`.
-pub fn unknown_encoding(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  response.Response(
-    status: status.ok,
-    body: response.Text("raw-uncompressed-bytes"),
+pub fn unknown_encoding(_request: Request) -> Response {
+  Response(
+    status: 200,
     headers: [
-      Header("Content-Type", "text/plain; charset=utf-8"),
-      Header("Content-Encoding", "br"),
+      #("content-type", "text/plain; charset=utf-8"),
+      #("content-encoding", "br"),
     ],
-    cookies: [],
-    content_type: option.Some("text/plain; charset=utf-8"),
+    body: Bytes(<<"raw-uncompressed-bytes":utf8>>),
   )
 }
 
@@ -478,27 +376,16 @@ pub fn unknown_encoding(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with the headers `Content-Type: text/plain` and
 /// `Content-Encoding: gzip`, and the body `this is not valid gzip data at all`.
-pub fn corrupted_gzip(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  response.Response(
-    status: status.ok,
-    body: response.Bytes(<<"this is not valid gzip data at all":utf8>>),
-    headers: [
-      Header("Content-Type", "text/plain"),
-      Header("Content-Encoding", "gzip"),
-    ],
-    cookies: [],
-    content_type: option.Some("text/plain"),
+pub fn corrupted_gzip(_request: Request) -> Response {
+  Response(
+    status: 200,
+    headers: [#("content-type", "text/plain"), #("content-encoding", "gzip")],
+    body: Bytes(<<"this is not valid gzip data at all":utf8>>),
   )
 }
 
@@ -511,26 +398,18 @@ pub fn corrupted_gzip(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 400 with the header `Content-Type: text/plain` and the bytes above as
 /// the body.
-pub fn non_utf8_error(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn non_utf8_error(_request: Request) -> Response {
   // "Error: " as ASCII + invalid UTF-8 bytes (0xC0, 0xC1, 0xFE, 0xFF)
   let body = <<69, 114, 114, 111, 114, 58, 32, 192, 193, 254, 255>>
-  response.Response(
-    status: status.bad_request,
-    body: response.Bytes(body),
-    headers: [Header("Content-Type", "text/plain")],
-    cookies: [],
-    content_type: option.Some("text/plain"),
+  Response(
+    status: 400,
+    headers: [#("content-type", "text/plain")],
+    body: Bytes(body),
   )
 }
 
@@ -541,27 +420,16 @@ pub fn non_utf8_error(
 /// ## Parameters
 ///
 /// - `request`: The request. Its `Accept-Encoding` header is the body of the response.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 200 with a `text/plain; charset=utf-8` body that holds the header
 /// value, or an empty body when the request has no `Accept-Encoding` header.
-pub fn echo_accept_encoding(
-  request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn echo_accept_encoding(request: Request) -> Response {
   let accept_encoding =
-    list.find(request.headers, fn(h) {
-      string.lowercase(h.name) == "accept-encoding"
-    })
-  let value = case accept_encoding {
-    Ok(found) -> found.value
-    Error(Nil) -> ""
-  }
-  text_response(status.ok, value)
+    message.find_header(request, "accept-encoding")
+    |> result.unwrap("")
+  text_response(200, accept_encoding)
 }
 
 /// Handles `GET /redirect/301`: redirects to `/text` with status 301.
@@ -571,8 +439,6 @@ pub fn echo_accept_encoding(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
@@ -582,12 +448,8 @@ pub fn echo_accept_encoding(
 ///
 /// - `redirect_chain` for a redirect in two steps
 /// - `redirect_absolute` for a `Location` with the host
-pub fn redirect_301(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  redirect_response(status.moved_permanently, "/text")
+pub fn redirect_301(_request: Request) -> Response {
+  redirect_response(301, "/text")
 }
 
 /// Handles `GET /redirect/302`: redirects to `/text` with status 302.
@@ -597,8 +459,6 @@ pub fn redirect_301(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
@@ -608,12 +468,8 @@ pub fn redirect_301(
 ///
 /// - `redirect_chain` for a redirect in two steps
 /// - `redirect_absolute` for a `Location` with the host
-pub fn redirect_302(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  redirect_response(status.found, "/text")
+pub fn redirect_302(_request: Request) -> Response {
+  redirect_response(302, "/text")
 }
 
 /// Handles `GET /redirect/303`: redirects to `/text` with status 303.
@@ -623,8 +479,6 @@ pub fn redirect_302(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
@@ -634,12 +488,8 @@ pub fn redirect_302(
 ///
 /// - `redirect_chain` for a redirect in two steps
 /// - `redirect_absolute` for a `Location` with the host
-pub fn redirect_303(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  redirect_response(status.see_other, "/text")
+pub fn redirect_303(_request: Request) -> Response {
+  redirect_response(303, "/text")
 }
 
 /// Handles `GET /redirect/307`: redirects to `/text` with status 307.
@@ -649,8 +499,6 @@ pub fn redirect_303(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
@@ -660,12 +508,8 @@ pub fn redirect_303(
 ///
 /// - `redirect_chain` for a redirect in two steps
 /// - `redirect_absolute` for a `Location` with the host
-pub fn redirect_307(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  redirect_response(status.temporary_redirect, "/text")
+pub fn redirect_307(_request: Request) -> Response {
+  redirect_response(307, "/text")
 }
 
 /// Handles `GET /redirect/308`: redirects to `/text` with status 308.
@@ -675,8 +519,6 @@ pub fn redirect_307(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
@@ -686,11 +528,7 @@ pub fn redirect_307(
 ///
 /// - `redirect_chain` for a redirect in two steps
 /// - `redirect_absolute` for a `Location` with the host
-pub fn redirect_308(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
+pub fn redirect_308(_request: Request) -> Response {
   redirect_response(308, "/text")
 }
 
@@ -702,8 +540,6 @@ pub fn redirect_308(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
@@ -712,12 +548,8 @@ pub fn redirect_308(
 /// ## See Also
 ///
 /// - `redirect_chain_2` for the second step
-pub fn redirect_chain(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  redirect_response(status.found, "/redirect/chain/2")
+pub fn redirect_chain(_request: Request) -> Response {
+  redirect_response(302, "/redirect/chain/2")
 }
 
 /// Handles `GET /redirect/chain/2`: the second step of a chain of two redirects.
@@ -725,8 +557,6 @@ pub fn redirect_chain(
 /// ## Parameters
 ///
 /// - `_request`: Not used.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
@@ -735,12 +565,8 @@ pub fn redirect_chain(
 /// ## See Also
 ///
 /// - `redirect_chain` for the first step
-pub fn redirect_chain_2(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  redirect_response(status.found, "/text")
+pub fn redirect_chain_2(_request: Request) -> Response {
+  redirect_response(302, "/text")
 }
 
 /// Handles `GET /redirect/absolute`: redirects to `/text` with a full URL in `Location`.
@@ -752,33 +578,22 @@ pub fn redirect_chain_2(
 /// ## Parameters
 ///
 /// - `request`: The request. Its `Host` header gives the host and port of the URL.
-/// - `_context`: Not used.
-/// - `_services`: Not used.
 ///
 /// ## Returns
 ///
 /// Status 302 with the header `Location: http://<host>/text` and an empty body.
 /// When the request has no `Host` header, the host is `localhost:9876`.
-pub fn redirect_absolute(
-  request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  let port_str = case
-    list.find(request.headers, fn(h) { string.lowercase(h.name) == "host" })
-  {
-    Ok(host_header) -> host_header.value
-    Error(Nil) -> "localhost:9876"
-  }
-  redirect_response(status.found, "http://" <> port_str <> "/text")
+pub fn redirect_absolute(request: Request) -> Response {
+  let host =
+    message.find_header(request, "host")
+    |> result.unwrap("localhost:9876")
+  redirect_response(302, "http://" <> host <> "/text")
 }
 
 fn redirect_response(status_code: Int, location: String) -> Response {
-  response.Response(
+  Response(
     status: status_code,
-    body: response.Text(""),
-    headers: [Header("Location", location)],
-    cookies: [],
-    content_type: option.None,
+    headers: [#("location", location)],
+    body: Bytes(<<>>),
   )
 }

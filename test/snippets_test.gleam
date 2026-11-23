@@ -2,26 +2,19 @@
 ////
 //// Each test runs a snippet and checks the exact result.
 
-import dream/context.{EmptyContext}
-import dream/http/request.{Get}
-import dream/http/response.{json_response}
-import dream/router.{EmptyServices}
 import dream_mock_server/config.{Exact, MockRoute, Prefix}
 import dream_mock_server/server
 import dream_test/matchers.{be_equal, or_fail_with, should}
 import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
-import fixtures/request as test_request
 import gleam/int
 import gleam/option.{None}
-import matchers/read_stream_chunks.{read_stream_chunks}
+import gleam/yielder
 import snippets/config_mode_method_specific
 import snippets/config_mode_ordering
 import snippets/config_mode_prefix
 import snippets/http_helper
 import snippets/non_streaming_technique
-import snippets/own_config_server
-import snippets/own_server
 import snippets/port
 import snippets/programmatic_control
 import snippets/programmatic_mode
@@ -37,8 +30,6 @@ pub fn tests() -> TestSuite {
     programmatic_control_tests(),
     streaming_technique_tests(),
     non_streaming_technique_tests(),
-    own_server_tests(),
-    own_config_server_tests(),
     release_1_1_0_config_mode_tests(),
   ])
 }
@@ -234,19 +225,17 @@ fn programmatic_control_tests() {
 }
 
 fn streaming_technique_tests() {
-  group("streaming_technique.stream_fast", [
-    it("streams ten chunks", fn() {
+  group("streaming_technique.fast_chunks", [
+    it("gives ten chunks", fn() {
       // Arrange
-      let request = test_request.create_request(Get, "/stream/fast")
+      let chunks = streaming_technique.fast_chunks()
 
       // Act
-      let response =
-        streaming_technique.stream_fast(request, EmptyContext, EmptyServices)
+      let chunk_list = yielder.to_list(chunks)
 
       // Assert
-      response
+      chunk_list
       |> should
-      |> read_stream_chunks
       |> be_equal([
         <<"Chunk 1\n":utf8>>,
         <<"Chunk 2\n":utf8>>,
@@ -265,64 +254,19 @@ fn streaming_technique_tests() {
 }
 
 fn non_streaming_technique_tests() {
-  group("non_streaming_technique.get", [
+  group("non_streaming_technique.echo_body", [
     it("returns the method and path as JSON", fn() {
       // Arrange
-      let request = test_request.create_request(Get, "/get")
+      let method = "DELETE"
 
       // Act
-      let response =
-        non_streaming_technique.get(request, EmptyContext, EmptyServices)
+      let body = non_streaming_technique.echo_body(method, "/delete")
 
       // Assert
-      response
+      body
       |> should
-      |> be_equal(json_response(200, "{\"method\":\"GET\",\"url\":\"/get\"}"))
-      |> or_fail_with("Expected 200 with the method and path")
-    }),
-  ])
-}
-
-fn own_server_tests() {
-  group("own_server.start_own_server", [
-    it("serves the built-in endpoints", fn() {
-      // Arrange
-      let port = port.free_port()
-      let assert Ok(handle) = own_server.start_own_server(port)
-
-      // Act
-      let response =
-        http_helper.get("http://localhost:" <> int.to_string(port) <> "/text")
-      server.stop(handle)
-
-      // Assert
-      response
-      |> should
-      |> be_equal(Ok(#(200, "Hello, World!")))
-      |> or_fail_with("Expected the /text response")
-    }),
-  ])
-}
-
-fn own_config_server_tests() {
-  group("own_config_server.start_own_config_server", [
-    it("serves the given routes", fn() {
-      // Arrange
-      let port = port.free_port()
-      let routes = [MockRoute("/x", Exact, None, 200, "x")]
-      let assert Ok(handle) =
-        own_config_server.start_own_config_server(port, routes)
-
-      // Act
-      let response =
-        http_helper.get("http://localhost:" <> int.to_string(port) <> "/x")
-      server.stop(handle)
-
-      // Assert
-      response
-      |> should
-      |> be_equal(Ok(#(200, "x")))
-      |> or_fail_with("Expected the configured response")
+      |> be_equal("{\"method\":\"DELETE\",\"url\":\"/delete\"}")
+      |> or_fail_with("Expected the method and path as JSON")
     }),
   ])
 }

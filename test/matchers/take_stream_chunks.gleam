@@ -1,6 +1,6 @@
 //// Reads the first chunks of a streamed response body.
 
-import dream/http/response.{type Response, type ResponseBody, Stream}
+import dream_mock_server/internal/message.{type Body, type Response, Stream}
 import dream_test/types.{
   type MatchResult, AssertionFailure, CustomMatcherFailure, MatchFailed, MatchOk,
 }
@@ -20,10 +20,7 @@ pub fn take_stream_chunks(
   }
 }
 
-fn take_from_body(
-  body: ResponseBody,
-  count: Int,
-) -> MatchResult(List(BitArray)) {
+fn take_from_body(body: Body, count: Int) -> MatchResult(List(BitArray)) {
   case body {
     Stream(chunks) -> MatchOk(chunks |> yielder.take(count) |> yielder.to_list)
     _not_a_stream -> not_a_stream_failure()

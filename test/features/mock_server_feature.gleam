@@ -3,8 +3,7 @@
 //// step sends the requests and then stops the server, so the Then steps
 //// only check the responses and no server stays running.
 
-import dream/servers/mist/server.{type ServerHandle} as dream_server
-import dream_mock_server/server
+import dream_mock_server/server.{type ServerHandle}
 import dream_test/gherkin/parser
 import dream_test/gherkin/steps.{
   type StepContext, feature_suite, get_int, get_string, get_word,
@@ -52,7 +51,7 @@ fn step_send_request(world: World, context: StepContext) {
     use path <- result.try(get_string(context.captures, 1))
     scenario_http.send(world.port, method, path)
   }
-  dream_server.stop(handle)
+  server.stop(handle)
   use response <- result.try(sent)
   Ok(World(..world, server: None, responses: [response]))
 }
@@ -64,7 +63,7 @@ fn step_send_concurrent_requests(world: World, context: StepContext) {
     use path <- result.try(get_string(context.captures, 1))
     scenario_http.send_concurrently(world.port, list.repeat(path, count))
   }
-  dream_server.stop(handle)
+  server.stop(handle)
   use responses <- result.try(sent)
   Ok(World(..world, server: None, responses: responses))
 }
@@ -76,7 +75,7 @@ fn step_request_two_concurrently(world: World, context: StepContext) {
     use second <- result.try(get_string(context.captures, 1))
     scenario_http.send_concurrently(world.port, [first, second])
   }
-  dream_server.stop(handle)
+  server.stop(handle)
   use responses <- result.try(sent)
   Ok(World(..world, server: None, responses: responses))
 }

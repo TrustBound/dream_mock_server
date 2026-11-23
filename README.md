@@ -39,7 +39,7 @@ This module provides a comprehensive set of endpoints for testing HTTP clients:
 All endpoints are deterministic and designed for testing, making them ideal for:
 
 - **Testing** - Use as a test fixture for HTTP client integration tests
-- **Demo** - Showcase Dream's HTTP capabilities with predictable behavior
+- **Demo** - Show HTTP behavior, such as streams and redirects, in a predictable way
 - **Learning** - Study different HTTP patterns and error handling
 
 ## Running
@@ -88,7 +88,6 @@ For proxy tests or any test that needs a **deterministic upstream** with specifi
 #### Start with one prefix route <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/config_mode_prefix.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
-import dream/servers/mist/server as dream_server
 import dream_mock_server/config.{type MockRoute, MockRoute, Prefix}
 import dream_mock_server/server
 import gleam/option.{None}
@@ -109,7 +108,7 @@ pub fn chat_completion_routes() -> List(MockRoute) {
 
 pub fn start_chat_mock(
   port: Int,
-) -> Result(dream_server.ServerHandle, actor.StartError) {
+) -> Result(server.ServerHandle, actor.StartError) {
   // Point your proxy or client at http://localhost:<port>,
   // then call server.stop(handle).
   server.start_with_config(port, chat_completion_routes())
@@ -121,15 +120,17 @@ pub fn start_chat_mock(
 - Matching is **first route wins** in list order.
 - `Exact` means request path must equal `path`.
 - `Prefix` means request path must start with `path`.
-- `method: Some(Get)` (or Post/Put/Delete/Patch) restricts by method.
+- `method: Some(Get)` (or Post/Put/Delete/Patch from `gleam/http`) restricts by method.
+- A request with the method CONNECT, TRACE or a method that is not standard is handled as GET.
 - `method: None` matches any method.
 - No match returns `404` with body `"Not found"`.
+- A HEAD or OPTIONS request returns `404` with body `"Route not found"`.
 
 #### Exact + method-specific example <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/config_mode_method_specific.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
-import dream/http/request.{Get, Post}
 import dream_mock_server/config.{type MockRoute, Exact, MockRoute}
+import gleam/http.{Get, Post}
 import gleam/option.{Some}
 
 // GET /resource  -> 200 {"ok":true}
@@ -348,7 +349,6 @@ Start/stop programmatically for tests. `http_helper` and `port` are small test h
 #### Start, use and stop the server <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/programmatic_control.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
-import dream/servers/mist/server as dream_server
 import dream_mock_server/server
 import gleam/int
 import gleam/result
@@ -368,7 +368,7 @@ pub fn fetch_text(port: Int) -> Result(#(Int, String), String) {
   response
 }
 
-fn start_server(port: Int) -> Result(dream_server.ServerHandle, String) {
+fn start_server(port: Int) -> Result(server.ServerHandle, String) {
   server.start(port)
   |> result.map_error(string.inspect)
 }
@@ -422,31 +422,23 @@ pub fn tests() -> TestSuite {
 
 ### Streaming Technique
 
-Streaming endpoints use Dream's `response.stream_response()`:
+A streaming endpoint returns a `Yielder(BitArray)`. The server sends one chunk
+for each element, and asks for the next element only after it sent the last
+one. So a `process.sleep` in the yielder sets the time between the chunks.
 
-#### Fast stream controller <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/streaming_technique.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+#### Fast stream chunks <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/streaming_technique.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
-import dream/context.{type EmptyContext}
-import dream/http/request.{type Request}
-import dream/http/response.{type Response, stream_response}
-import dream/http/status
-import dream/router.{type EmptyServices}
 import gleam/bit_array
 import gleam/erlang/process
 import gleam/int
-import gleam/yielder
+import gleam/yielder.{type Yielder}
 
-pub fn stream_fast(
-  _request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  let stream =
-    yielder.range(1, 10)
-    |> yielder.map(create_fast_chunk)
-
-  stream_response(status.ok, stream, "text/plain")
+/// The chunks of `GET /stream/fast`. The server sends one chunk for each
+/// element, and asks for the next element only after it sent the last one.
+pub fn fast_chunks() -> Yielder(BitArray) {
+  yielder.range(1, 10)
+  |> yielder.map(create_fast_chunk)
 }
 
 fn create_fast_chunk(number: Int) -> BitArray {
@@ -458,31 +450,23 @@ fn create_fast_chunk(number: Int) -> BitArray {
 
 ### Non-Streaming Technique
 
-Non-streaming endpoints use standard `json_response()` and `text_response()`:
+A non-streaming endpoint builds its whole body, then the server sends it with a
+`content-length` header. The JSON endpoints build their bodies with
+`gleam_json`:
 
-#### JSON controller <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/non_streaming_technique.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+#### Echo JSON body <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/non_streaming_technique.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```gleam
-import dream/context.{type EmptyContext}
-import dream/http/request.{type Request}
-import dream/http/response.{type Response, json_response}
-import dream/http/status
-import dream/router.{type EmptyServices}
 import gleam/json
 
-pub fn get(
-  request: Request,
-  _context: EmptyContext,
-  _services: EmptyServices,
-) -> Response {
-  let body =
-    json.object([
-      #("method", json.string("GET")),
-      #("url", json.string(request.path)),
-    ])
-    |> json.to_string
-
-  json_response(status.ok, body)
+/// The JSON body of an echo answer: the method and the path of the request
+/// in one object, for example `{"method":"DELETE","url":"/delete"}`.
+pub fn echo_body(method: String, path: String) -> String {
+  json.object([
+    #("method", json.string(method)),
+    #("url", json.string(path)),
+  ])
+  |> json.to_string
 }
 ```
 
@@ -501,30 +485,46 @@ The `/stream/error` endpoint demonstrates mid-stream errors by returning a 500 s
 
 ## Architecture
 
+The mock server has a pure core and a thin adapter. The core decides the
+answer to each request and has no socket, so its tests call it directly. The
+adapter connects the core to
+[dream_http_server](https://hexdocs.pm/dream_http_server), the HTTP server.
+
 ```text
 src/
-├── standalone.gleam                  # Standalone entry point (port 3004)
-├── compression_ffi.erl               # zlib compression
+├── standalone.gleam                    # Standalone entry point (port 3004)
+├── compression_ffi.erl                 # zlib compression
+├── dream_mock_server_ffi.erl           # Port check and server stop
 └── dream_mock_server/
-    ├── server.gleam                  # Programmatic start/stop functions
-    ├── config.gleam                  # Config mode route types
-    ├── router.gleam                  # Route definitions
-    ├── compression.gleam             # Compression helpers
-    ├── controllers/
-    │   ├── api_controller.gleam      # Non-streaming endpoints
-    │   ├── config_controller.gleam   # Config mode handler
-    │   └── stream_controller.gleam   # Streaming endpoints
+    ├── server.gleam                    # Programmatic start/stop functions
+    ├── config.gleam                    # Config mode route types
+    ├── compression.gleam               # Compression helpers
+    ├── internal/
+    │   ├── message.gleam               # Request and response types of the core
+    │   ├── routes.gleam                # Route match: which endpoint answers
+    │   ├── path.gleam                  # Path segments for the route match
+    │   ├── api_endpoints.gleam         # Non-streaming endpoints
+    │   ├── stream_endpoints.gleam      # Streaming endpoints and the info page
+    │   ├── config_endpoint.gleam       # Config mode endpoint
+    │   ├── mist_adapter.gleam          # Converts between the core and the server
+    │   └── standalone_runner.gleam     # Runs the server for standalone.main
     └── views/
-        ├── api_view.gleam            # JSON and text bodies
-        └── index_view.gleam          # Info page text
+        ├── api_view.gleam              # JSON and text bodies
+        └── index_view.gleam            # Info page text
 ```
+
+The modules in `internal/` are not part of the public API.
 
 ## Dependencies
 
-- **Dream** - Web framework
+- **dream_http_server** - The HTTP server (a fork of mist)
+- **gleam_http** - HTTP methods
 - **gleam_erlang** - Process control (sleep)
+- **gleam_otp** - The start error type
 - **gleam_json** - JSON encoding
 - **gleam_yielder** - Stream generation
+
+The mock server does not depend on the Dream web framework.
 
 ## All Examples Are Tested
 
