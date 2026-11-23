@@ -713,7 +713,7 @@ pub fn tests() -> TestSuite {
         |> be_equal(routes.route_not_found_response())
         |> or_fail_with("Expected 404 for HEAD /text")
       }),
-      it("answers TRACE as GET", fn() {
+      it("answers 404 for TRACE", fn() {
         // Arrange
         let request = test_request.create_request(Trace, "/text")
 
@@ -723,10 +723,23 @@ pub fn tests() -> TestSuite {
         // Assert
         response
         |> should
-        |> be_equal(text_response(200, "Hello, World!"))
-        |> or_fail_with("Expected the GET /text response")
+        |> be_equal(routes.route_not_found_response())
+        |> or_fail_with("Expected 404 for TRACE /text")
       }),
-      it("answers a method that is not standard as GET", fn() {
+      it("answers 404 for CONNECT", fn() {
+        // Arrange
+        let request = test_request.create_request(Connect, "/text")
+
+        // Act
+        let response = answer_request(BuiltInEndpoints, request)
+
+        // Assert
+        response
+        |> should
+        |> be_equal(routes.route_not_found_response())
+        |> or_fail_with("Expected 404 for CONNECT /text")
+      }),
+      it("answers 404 for a method that is not standard", fn() {
         // Arrange
         let request = test_request.create_request(Other("PURGE"), "/text")
 
@@ -736,8 +749,8 @@ pub fn tests() -> TestSuite {
         // Assert
         response
         |> should
-        |> be_equal(text_response(200, "Hello, World!"))
-        |> or_fail_with("Expected the GET /text response")
+        |> be_equal(routes.route_not_found_response())
+        |> or_fail_with("Expected 404 for PURGE /text")
       }),
       it("matches a path with a file extension on a literal segment", fn() {
         // Arrange
@@ -835,7 +848,7 @@ pub fn tests() -> TestSuite {
         |> be_equal(text_response(200, "root"))
         |> or_fail_with("Expected the configured response")
       }),
-      it("matches a TRACE request to a GET route", fn() {
+      it("answers 404 Not found for a TRACE request to a GET route", fn() {
         // Arrange
         let mode =
           ConfiguredRoutes([MockRoute("/x", Exact, Some(Get), 200, "x")])
@@ -847,36 +860,25 @@ pub fn tests() -> TestSuite {
         // Assert
         response
         |> should
-        |> be_equal(text_response(200, "x"))
-        |> or_fail_with("Expected the GET route to answer")
+        |> be_equal(text_response(404, "Not found"))
+        |> or_fail_with("Expected 404 Not found")
       }),
-    ]),
-    group("routing_method", [
-      it("handles CONNECT as GET", fn() {
+      it("matches a PURGE request to a route with the method PURGE", fn() {
         // Arrange
-        let method = Connect
+        let mode =
+          ConfiguredRoutes([
+            MockRoute("/x", Exact, Some(Other("PURGE")), 200, "purged"),
+          ])
+        let request = test_request.create_request(Other("PURGE"), "/x")
 
         // Act
-        let routed = routes.routing_method(method)
+        let response = answer_request(mode, request)
 
         // Assert
-        routed
+        response
         |> should
-        |> be_equal(Get)
-        |> or_fail_with("Expected GET")
-      }),
-      it("keeps a standard method", fn() {
-        // Arrange
-        let method = Delete
-
-        // Act
-        let routed = routes.routing_method(method)
-
-        // Assert
-        routed
-        |> should
-        |> be_equal(Delete)
-        |> or_fail_with("Expected DELETE")
+        |> be_equal(text_response(200, "purged"))
+        |> or_fail_with("Expected the PURGE route to answer")
       }),
     ]),
     group("index", [

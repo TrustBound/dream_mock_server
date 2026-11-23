@@ -30,6 +30,29 @@ pub fn raw_status_line(port: Int, request: String) -> Result(String, String) {
   }
 }
 
+/// Sends raw request text to the local server at `port`. Returns the
+/// status line and the body of the answer, for example
+/// `#("HTTP/1.1 404 Not Found", "Route not found")`, or the connection
+/// error. The body is all the text after the empty line that ends the
+/// headers, so send `connection: close` and expect a body that is not
+/// chunked.
+pub fn raw_status_and_body(
+  port: Int,
+  request: String,
+) -> Result(#(String, String), String) {
+  case raw_request(port, <<request:utf8>>) {
+    Ok(answer) -> Ok(status_line_and_body(to_text(answer)))
+    Error(reason) -> Error(to_text(reason))
+  }
+}
+
+fn status_line_and_body(text: String) -> #(String, String) {
+  let #(head, body) =
+    string.split_once(text, "\r\n\r\n")
+    |> result.unwrap(#(text, ""))
+  #(first_line(head), body)
+}
+
 fn first_line(text: String) -> String {
   string.split(text, "\r\n")
   |> list.first

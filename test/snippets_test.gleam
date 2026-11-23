@@ -7,6 +7,7 @@ import dream_mock_server/server
 import dream_test/matchers.{be_equal, match_snapshot, or_fail_with, should}
 import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
+import fixtures/http as raw_http
 import fixtures/zlib
 import gleam/bit_array
 import gleam/int
@@ -27,6 +28,7 @@ import snippets/compression_deflate
 import snippets/compression_deflate_chunks
 import snippets/compression_gzip
 import snippets/compression_gzip_chunks
+import snippets/config_mode_custom_method
 import snippets/config_mode_method_specific
 import snippets/config_mode_ordering
 import snippets/config_mode_prefix
@@ -43,6 +45,7 @@ pub fn tests() -> TestSuite {
     programmatic_mode_tests(),
     config_mode_prefix_tests(),
     config_mode_method_specific_tests(),
+    config_mode_custom_method_tests(),
     config_mode_ordering_tests(),
     programmatic_control_tests(),
     streaming_technique_tests(),
@@ -168,6 +171,65 @@ fn config_mode_method_specific_tests() {
       |> should
       |> be_equal(Ok(#(201, "{\"created\":true}")))
       |> or_fail_with("Expected 201 for POST")
+    }),
+  ])
+}
+
+fn config_mode_custom_method_tests() {
+  group("config_mode_custom_method.cache_routes", [
+    it("answers PURGE with 200", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) =
+        server.start_with_config(port, config_mode_custom_method.cache_routes())
+      let request =
+        "PURGE /cache HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+      // Act
+      let answer = raw_http.raw_status_and_body(port, request)
+      server.stop(handle)
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(#("HTTP/1.1 200 OK", "purged")))
+      |> or_fail_with("Expected 200 for PURGE")
+    }),
+    it("answers GET with 404", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) =
+        server.start_with_config(port, config_mode_custom_method.cache_routes())
+      let request =
+        "GET /cache HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+      // Act
+      let answer = raw_http.raw_status_and_body(port, request)
+      server.stop(handle)
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(#("HTTP/1.1 404 Not Found", "Not found")))
+      |> or_fail_with("Expected 404 for GET")
+    }),
+    it("answers Purge with 404", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) =
+        server.start_with_config(port, config_mode_custom_method.cache_routes())
+      let request =
+        "Purge /cache HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+      // Act
+      let answer = raw_http.raw_status_and_body(port, request)
+      server.stop(handle)
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(#("HTTP/1.1 404 Not Found", "Not found")))
+      |> or_fail_with("Expected 404 for Purge")
     }),
   ])
 }

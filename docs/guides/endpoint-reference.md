@@ -18,8 +18,8 @@ This page lists every built-in endpoint of the server that `server.start(port)` 
 - A path matches by its segments. Empty segments don't count, so `/text/` and `//text` match `/text`.
 - A path segment with one file extension matches without it: `/text.json` matches `/text`, and `/status/418.json` answers status 418.
 - The query string isn't part of the match.
-- A request with the method CONNECT, TRACE or a method that isn't standard is handled as GET.
-- A request that matches no endpoint gets status 404 with the `text/plain; charset=utf-8` body `Route not found`. That includes a request with the wrong method, such as `GET /post`, and every HEAD and OPTIONS request.
+- The match uses the method that the request sent. The server never changes a method into another method. A method that isn't standard, such as `PURGE`, matches no built-in endpoint, and its name is case-sensitive.
+- A request that matches no endpoint gets status 404 with the `text/plain; charset=utf-8` body `Route not found`. That includes a request with the wrong method, such as `GET /post`, `PURGE /text` or `TRACE /text`, and every HEAD and OPTIONS request.
 - The server reads the request body only when an endpoint matches. A body larger than 10 MB, or a body it can't read, gets status 400 with an empty body.
 - A body that isn't streamed goes out with a `content-length` header. A streamed body goes out with chunked transfer encoding, one chunk at a time.
 

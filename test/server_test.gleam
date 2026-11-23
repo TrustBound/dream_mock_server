@@ -17,6 +17,7 @@ pub fn tests() -> TestSuite {
     start_tests(),
     start_with_config_tests(),
     stop_tests(),
+    method_tests(),
   ])
 }
 
@@ -238,6 +239,96 @@ fn stop_tests() {
       |> should
       |> be_equal(Nil)
       |> or_fail_with("Expected Nil")
+    }),
+  ])
+}
+
+fn method_tests() {
+  group("request methods of the built-in endpoints", [
+    it("answers 404 Route not found for DELETE /text", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) = server.start(port)
+      let request =
+        "DELETE /text HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+      // Act
+      let answer = http.raw_status_and_body(port, request)
+      server.stop(handle)
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(#("HTTP/1.1 404 Not Found", "Route not found")))
+      |> or_fail_with("Expected 404 Route not found for DELETE /text")
+    }),
+    it("answers 404 Route not found for PURGE /text", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) = server.start(port)
+      let request =
+        "PURGE /text HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+      // Act
+      let answer = http.raw_status_and_body(port, request)
+      server.stop(handle)
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(#("HTTP/1.1 404 Not Found", "Route not found")))
+      |> or_fail_with("Expected 404 Route not found for PURGE /text")
+    }),
+    it("answers 404 Route not found for TRACE /text", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) = server.start(port)
+      let request =
+        "TRACE /text HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+      // Act
+      let answer = http.raw_status_and_body(port, request)
+      server.stop(handle)
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(#("HTTP/1.1 404 Not Found", "Route not found")))
+      |> or_fail_with("Expected 404 Route not found for TRACE /text")
+    }),
+    it("answers 404 Route not found for CONNECT /text", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) = server.start(port)
+      let request =
+        "CONNECT /text HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+      // Act
+      let answer = http.raw_status_and_body(port, request)
+      server.stop(handle)
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(#("HTTP/1.1 404 Not Found", "Route not found")))
+      |> or_fail_with("Expected 404 Route not found for CONNECT /text")
+    }),
+    it("closes the connection for CONNECT to an authority", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) = server.start(port)
+      let request =
+        "CONNECT localhost:443 HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+      // Act
+      let answer = http.raw_status_and_body(port, request)
+      server.stop(handle)
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(#("", "")))
+      |> or_fail_with("Expected no answer for CONNECT localhost:443")
     }),
   ])
 }

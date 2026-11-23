@@ -9,7 +9,7 @@ import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
 import fixtures/http
 import fixtures/port
-import gleam/http.{Get, Post} as _gleam_http
+import gleam/http.{Connect, Get, Other, Post, Trace} as _gleam_http
 import gleam/option.{None, Some}
 
 pub fn tests() -> TestSuite {
@@ -242,6 +242,156 @@ pub fn tests() -> TestSuite {
         |> should
         |> be_equal(Ok(#(201, "post")))
         |> or_fail_with("Expected Ok(#(201, 'post'))")
+      }),
+    ]),
+    group("request methods", [
+      it("matches a PURGE request to a route with the method PURGE", fn() {
+        // Arrange
+        let port = port.free_port()
+        let routes = [
+          MockRoute("/cache", Exact, Some(Other("PURGE")), 200, "purged"),
+        ]
+        let assert Ok(handle) = server.start_with_config(port, routes)
+        let request =
+          "PURGE /cache HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+        // Act
+        let answer = http.raw_status_and_body(port, request)
+        server.stop(handle)
+
+        // Assert
+        answer
+        |> should
+        |> be_equal(Ok(#("HTTP/1.1 200 OK", "purged")))
+        |> or_fail_with("Expected the PURGE route to answer")
+      }),
+      it("matches a TRACE request to a route with the method TRACE", fn() {
+        // Arrange
+        let port = port.free_port()
+        let routes = [MockRoute("/trace", Exact, Some(Trace), 200, "traced")]
+        let assert Ok(handle) = server.start_with_config(port, routes)
+        let request =
+          "TRACE /trace HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+        // Act
+        let answer = http.raw_status_and_body(port, request)
+        server.stop(handle)
+
+        // Assert
+        answer
+        |> should
+        |> be_equal(Ok(#("HTTP/1.1 200 OK", "traced")))
+        |> or_fail_with("Expected the TRACE route to answer")
+      }),
+      it("matches a CONNECT request to a route with the method CONNECT", fn() {
+        // Arrange
+        let port = port.free_port()
+        let routes = [MockRoute("/tunnel", Exact, Some(Connect), 200, "tunnel")]
+        let assert Ok(handle) = server.start_with_config(port, routes)
+        let request =
+          "CONNECT /tunnel HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+        // Act
+        let answer = http.raw_status_and_body(port, request)
+        server.stop(handle)
+
+        // Assert
+        answer
+        |> should
+        |> be_equal(Ok(#("HTTP/1.1 200 OK", "tunnel")))
+        |> or_fail_with("Expected the CONNECT route to answer")
+      }),
+      it("matches a PURGE request to a route with no method", fn() {
+        // Arrange
+        let port = port.free_port()
+        let routes = [MockRoute("/cache", Exact, None, 200, "any")]
+        let assert Ok(handle) = server.start_with_config(port, routes)
+        let request =
+          "PURGE /cache HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+        // Act
+        let answer = http.raw_status_and_body(port, request)
+        server.stop(handle)
+
+        // Assert
+        answer
+        |> should
+        |> be_equal(Ok(#("HTTP/1.1 200 OK", "any")))
+        |> or_fail_with("Expected the route with no method to answer")
+      }),
+      it("returns 404 for a TRACE request to a GET route", fn() {
+        // Arrange
+        let port = port.free_port()
+        let routes = [MockRoute("/x", Exact, Some(Get), 200, "x")]
+        let assert Ok(handle) = server.start_with_config(port, routes)
+        let request =
+          "TRACE /x HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+        // Act
+        let answer = http.raw_status_and_body(port, request)
+        server.stop(handle)
+
+        // Assert
+        answer
+        |> should
+        |> be_equal(Ok(#("HTTP/1.1 404 Not Found", "Not found")))
+        |> or_fail_with("Expected 404 Not found for TRACE")
+      }),
+      it("returns 404 for a PURGE request to a GET route", fn() {
+        // Arrange
+        let port = port.free_port()
+        let routes = [MockRoute("/x", Exact, Some(Get), 200, "x")]
+        let assert Ok(handle) = server.start_with_config(port, routes)
+        let request =
+          "PURGE /x HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+        // Act
+        let answer = http.raw_status_and_body(port, request)
+        server.stop(handle)
+
+        // Assert
+        answer
+        |> should
+        |> be_equal(Ok(#("HTTP/1.1 404 Not Found", "Not found")))
+        |> or_fail_with("Expected 404 Not found for PURGE")
+      }),
+      it("matches the method name with its case", fn() {
+        // Arrange
+        let port = port.free_port()
+        let routes = [
+          MockRoute("/cache", Exact, Some(Other("PURGE")), 200, "purged"),
+        ]
+        let assert Ok(handle) = server.start_with_config(port, routes)
+        let request =
+          "Purge /cache HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+        // Act
+        let answer = http.raw_status_and_body(port, request)
+        server.stop(handle)
+
+        // Assert
+        answer
+        |> should
+        |> be_equal(Ok(#("HTTP/1.1 404 Not Found", "Not found")))
+        |> or_fail_with("Expected 404 Not found for Purge")
+      }),
+      it("closes the connection for CONNECT to an authority", fn() {
+        // Arrange
+        let port = port.free_port()
+        let routes = [MockRoute("/", Prefix, None, 200, "any")]
+        let assert Ok(handle) = server.start_with_config(port, routes)
+        let request =
+          "CONNECT localhost:443 HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+        // Act
+        let answer = http.raw_status_and_body(port, request)
+        server.stop(handle)
+
+        // Assert
+        answer
+        |> should
+        |> be_equal(Ok(#("", "")))
+        |> or_fail_with("Expected no answer for CONNECT localhost:443")
       }),
     ]),
     group("status and body", [

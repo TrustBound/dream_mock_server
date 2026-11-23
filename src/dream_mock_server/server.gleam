@@ -128,7 +128,8 @@ pub fn start(port: Int) -> Result(ServerHandle, actor.StartError) {
 ///
 /// The routes are checked in list order, and the first route that matches
 /// wins. A route matches when its path matches (`Exact` or `Prefix`) and its
-/// method is `None` or the method of the request. When no route matches, the
+/// method is `None` or the method that the request sent, for example
+/// `Some(http.Other("PURGE"))` for a PURGE request. When no route matches, the
 /// response is status 404 with the body `Not found`. A request with the
 /// method HEAD or OPTIONS gets status 404 with the body `Route not found`.
 ///

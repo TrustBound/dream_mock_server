@@ -32,8 +32,11 @@ pub type PathMatch {
 /// - `path_match`: `Exact` or `Prefix`.
 /// - `method`: `Some(method)` to match only that method, for example
 ///   `Some(http.Post)` with `import gleam/http`, or `None` to match every
-///   method. A request with the method CONNECT, TRACE or a method that is
-///   not standard is handled as GET.
+///   method. The match uses the method that the request sent, so
+///   `Some(http.Trace)` matches a TRACE request and
+///   `Some(http.Other("PURGE"))` matches a PURGE request. The name in
+///   `Other` is case-sensitive. A request with the method HEAD or OPTIONS
+///   matches no route.
 /// - `status`: The HTTP status code of the response.
 /// - `body`: The response body, sent as it is with the content type
 ///   `text/plain; charset=utf-8`.

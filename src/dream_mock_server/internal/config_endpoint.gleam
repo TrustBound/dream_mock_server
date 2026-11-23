@@ -1,7 +1,8 @@
 //// The endpoint of config mode.
 ////
-//// When the server runs with `server.start_with_config`, every request with
-//// the method GET, POST, PUT, DELETE or PATCH comes to `handle`. It returns
+//// When the server runs with `server.start_with_config`, every request
+//// comes to `handle`, except a request with the method HEAD or OPTIONS. The
+//// method is the method that the request sent. It returns
 //// the status and body of the first `MockRoute` that matches the request, or
 //// 404 when no route matches.
 

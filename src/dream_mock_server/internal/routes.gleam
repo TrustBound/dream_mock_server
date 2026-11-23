@@ -5,14 +5,17 @@
 //// the body, and sends back the `Response` that `answer` returns.
 ////
 //// The match follows the rules of the router that the mock server used
-//// before 2.0.0, so every request gets the same answer as before:
+//// before 2.0.0, so a request with a standard method other than CONNECT
+//// and TRACE gets the same answer as before:
 ////
 //// - A path matches by its segments. Empty segments do not count, so
 ////   `/text/` and `//text` match `/text`.
 //// - A literal segment also matches when the request segment has one file
 ////   extension: `/text.json` matches `/text`.
-//// - A request with the method CONNECT, TRACE or a method that is not
-////   standard is handled as GET.
+//// - The match uses the method of the request as the request sent it. The
+////   server never changes a method into another method. A method that is
+////   not standard, for example `PURGE`, is `http.Other("PURGE")`, and its
+////   name is case-sensitive: `Purge` is a different method.
 //// - A request that matches no route gets status 404 with the body
 ////   `Route not found`. The server does not read its body.
 //// - When the server cannot read the body of a request that matches, for
@@ -29,9 +32,10 @@
 ////
 //// ## Config mode
 ////
-//// In config mode every request with the method GET, POST, PUT, DELETE or
-//// PATCH goes to `dream_mock_server/internal/config_endpoint.handle`, for
-//// every path. Other methods get the 404 `Route not found` response.
+//// In config mode every request goes to
+//// `dream_mock_server/internal/config_endpoint.handle`, for every path,
+//// except a request with the method HEAD or OPTIONS. HEAD and OPTIONS get
+//// the 404 `Route not found` response.
 
 import dream_mock_server/config.{type MockRoute}
 import dream_mock_server/internal/built_in_endpoints.{
@@ -39,8 +43,7 @@ import dream_mock_server/internal/built_in_endpoints.{
 }
 import dream_mock_server/internal/config_endpoint
 import dream_mock_server/internal/message.{
-  type Request, type RequestHead, type Response, Bytes, RequestHead, Response,
-  text_response,
+  type Request, type RequestHead, type Response, Bytes, Response, text_response,
 }
 import dream_mock_server/internal/path
 import dream_mock_server/views/index_view
@@ -82,9 +85,8 @@ pub fn answer(
   head: RequestHead,
   read_body: fn() -> Result(BitArray, Nil),
 ) -> Response {
-  let routed_head = RequestHead(..head, method: routing_method(head.method))
-  case find_endpoint(mode, routed_head.method, routed_head.path) {
-    Ok(endpoint) -> answer_with_body(endpoint, routed_head, read_body())
+  case find_endpoint(mode, head.method, head.path) {
+    Ok(endpoint) -> answer_with_body(endpoint, head, read_body())
     Error(Nil) -> route_not_found_response()
   }
 }
@@ -100,29 +102,12 @@ fn answer_with_body(
   }
 }
 
-/// Gives the method that the route match uses for a request method.
-///
-/// ## Parameters
-///
-/// - `method`: The method of the request.
-///
-/// ## Returns
-///
-/// `Get` for `Connect`, `Trace` and `Other`. Any other method comes back
-/// unchanged.
-pub fn routing_method(method: Method) -> Method {
-  case method {
-    http.Connect | http.Trace | http.Other(_) -> http.Get
-    standard_method -> standard_method
-  }
-}
-
 /// Finds the endpoint for a method and a path.
 ///
 /// ## Parameters
 ///
 /// - `mode`: The endpoints of the server.
-/// - `method`: The method, after `routing_method`.
+/// - `method`: The method of the request, as the request sent it.
 /// - `request_path`: The request path.
 ///
 /// ## Returns
@@ -184,9 +169,8 @@ fn find_config_endpoint(
   routes: List(MockRoute),
 ) -> Result(Endpoint, Nil) {
   case method {
-    http.Get | http.Post | http.Put | http.Delete | http.Patch ->
-      Ok(config_endpoint.handle(_, routes))
-    _other_method -> Error(Nil)
+    http.Head | http.Options -> Error(Nil)
+    _other_method -> Ok(config_endpoint.handle(_, routes))
   }
 }
 

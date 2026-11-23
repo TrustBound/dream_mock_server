@@ -274,13 +274,29 @@ The rules in one place:
 | Matches the path of a route, but not its method | `404` with the body `Not found`, unless a later route matches |
 | Matches no route | `404` with the body `Not found` |
 | Method HEAD or OPTIONS | `404` with the body `Route not found`, before any route is checked |
-| Method CONNECT, TRACE, or a method that isn't standard | Matched as GET |
+| Method CONNECT, TRACE, or a method that isn't standard, such as `PURGE` | Matched with that method, as any other method is |
 
 A few details of the path match:
 
 - The query string isn't part of the path, so `Exact` with `/api/special` matches `/api/special?debug=1`.
 - `Exact` compares the whole path, so `/resource` doesn't match `/resource/`.
-- A route with the method CONNECT, TRACE or a method that isn't standard can never match, because those requests are matched as GET.
+
+The server never changes a method into another method. A route with `Some(http.Trace)` matches only a TRACE request. For a method that isn't standard, give its name to `http.Other`. The name is case-sensitive, so `Other("PURGE")` matches `PURGE` and not `Purge`:
+
+### A route for a method that isn't standard <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/config_mode_custom_method.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
+```gleam
+import dream_mock_server/config.{type MockRoute, Exact, MockRoute}
+import gleam/http.{Other}
+import gleam/option.{Some}
+
+// PURGE /cache -> 200 purged
+// GET /cache   -> 404 Not found
+// Purge /cache -> 404 Not found (a method name is case-sensitive)
+pub fn cache_routes() -> List(MockRoute) {
+  [MockRoute("/cache", Exact, Some(Other("PURGE")), 200, "purged")]
+}
+```
 
 ## What config mode doesn't do
 

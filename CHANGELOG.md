@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - The info page of `GET /` (`index_view.format_index()`) now lists all 40 built-in endpoints. Before, it listed 15 of them. The page and the route match now use one table of the built-in endpoints, so the page cannot leave out an endpoint that answers. The page no longer says `Server: localhost:3004`, which was wrong on every other port, and it no longer has the line `Content-Type: All endpoints return appropriate MIME types`. It now says that `/stream/error` sends status 500 first and then its 3 chunks. Before, it said "3 chunks then 500 status".
+- A request keeps its method. Before, the server changed CONNECT, TRACE and every method that is not standard, such as `PURGE`, into GET, so `TRACE /text` got the answer of `GET /text` and a `MockRoute` with one of those methods could never match. Now `PURGE /text` and `TRACE /text` get status 404 with the body `Route not found`, the same answer as `DELETE /text`. In config mode, a route with `Some(http.Other("PURGE"))`, `Some(http.Trace)` or `Some(http.Connect)` matches a request with that method. A method name is case-sensitive. The answers to GET, POST, PUT, PATCH, DELETE, HEAD and OPTIONS do not change.
 
 ### Removed
 
@@ -30,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Testing
 
-- 304 tests run, 0 failed, in about 65 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (330 of 330 lines).
+- 320 tests run, 0 failed, in about 65 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (326 of 326 lines).
 - Each of 55 recorded requests, one or more for each endpoint, gets the same raw HTTP answer as before the move to `dream_http_server`, except `GET /`. The body of `GET /` is now the fixed info page, and its `content-length` changes with it.
 
 ## [1.1.1] - 2026-03-03

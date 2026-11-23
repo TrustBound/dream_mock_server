@@ -57,7 +57,7 @@ fn start_server(port: Int) -> Result(server.ServerHandle, String) {
 
 ### Every Endpoint Except `GET /` Answers as Before
 
-No other endpoint changed. To prove that, 55 requests were recorded on the old code, one or more for each endpoint. Each one gets the same raw HTTP answer on the new code, except `GET /`. Its info page is fixed, as [Bug Fixes](#bug-fixes) tells.
+No other endpoint changed. To prove that, 55 requests were recorded on the old code, one or more for each endpoint. Each one gets the same raw HTTP answer on the new code, except `GET /`. Its info page is fixed, as [Bug Fixes](#bug-fixes) tells. A request with the method CONNECT, TRACE or a method that is not standard now gets 404 on the built-in endpoints, because the server no longer changes its method into GET. [Bug Fixes](#bug-fixes) also tells about this change.
 
 ### Integration Scenarios Run in `gleam test`
 
@@ -76,15 +76,16 @@ The package has four guides in [`docs/guides/`](https://github.com/TrustBound/dr
 - **The info page of `GET /` lists every built-in endpoint**: before, `index_view.format_index()` listed 15 of the 40 built-in endpoints. Now the page and the route match use one table of the built-in endpoints, so the page cannot leave out an endpoint that answers.
 - **The info page names no fixed port**: before, it always said `Server: localhost:3004`, also on other ports. The line `Content-Type: All endpoints return appropriate MIME types` is also gone.
 - **The info page tells the order of `/stream/error` correctly**: status 500 comes first, then 3 chunks. Before, the page said "3 chunks then 500 status".
+- **A request keeps its method**: before, the server changed the methods CONNECT, TRACE and every method that is not standard, such as `PURGE`, into GET. So `TRACE /text` and `PURGE /text` got the answer of `GET /text`, and a `MockRoute` with one of those methods could never match. Now the route match uses the method that the request sent. On the built-in endpoints, `PURGE /text` and `TRACE /text` get status 404 with the body `Route not found`, the same answer as `DELETE /text`. In config mode, a route with `Some(http.Other("PURGE"))`, `Some(http.Trace)` or `Some(http.Connect)` matches a request with that method, and a route with `None` matches every method as before. A method name is case-sensitive, so `Purge` does not match `Other("PURGE")`. GET, POST, PUT, PATCH, DELETE, HEAD and OPTIONS get the same answers as before.
 
 ## Known Limits
 
-- CONNECT, TRACE and methods that are not standard are handled as GET, as before. A `MockRoute` with one of those methods can never match
+- In config mode, a HEAD or OPTIONS request gets 404 `Route not found` before any route is checked, as before. A `MockRoute` with one of those two methods can never match
 - The `standalone` module stops with a panic when port 3004 is in use, as before
 
 ## Testing
 
-- 304 tests run, 0 failed, in about 65 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (330 of 330 lines)
+- 320 tests run, 0 failed, in about 65 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (326 of 326 lines)
 - Each of 55 recorded requests gets the same raw HTTP answer as before the move to `dream_http_server`, except `GET /`, whose info page is fixed
 
 ## Upgrading
