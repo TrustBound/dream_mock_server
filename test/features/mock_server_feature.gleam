@@ -5,14 +5,15 @@
 
 import dream/servers/mist/server.{type ServerHandle} as dream_server
 import dream_mock_server/server
-import dream_test/gherkin/feature.{FeatureConfig, to_test_suite}
 import dream_test/gherkin/parser
-import dream_test/gherkin/steps.{type StepContext, get_int, get_string, get_word}
+import dream_test/gherkin/steps.{
+  type StepContext, feature_suite, get_int, get_string, get_word,
+}
 import dream_test/matchers.{
   be_at_least, be_equal, be_greater_than, be_ok, contain_string, or_fail_with,
   should, start_with,
 }
-import dream_test/types.{type TestSuite}
+import dream_test/suite.{type TestSuite}
 import fixtures/port
 import fixtures/scenario_http
 import gleam/bit_array
@@ -225,7 +226,7 @@ fn step_second_line_count(world: World, context: StepContext) {
   |> or_fail_with("Wrong number of lines")
 }
 
-pub fn tests() -> TestSuite(Nil) {
+pub fn tests() -> TestSuite {
   let steps =
     steps.new(initial: World(port: 0, server: None, responses: []))
     |> steps.given("the server is running on a free port", step_server_running)
@@ -276,5 +277,5 @@ pub fn tests() -> TestSuite(Nil) {
 
   let assert Ok(feature) =
     parser.parse_file("test/features/mock_server.feature")
-  to_test_suite(FeatureConfig(feature: feature, step_registry: steps))
+  feature_suite(registry: steps, feature: feature)
 }

@@ -1,9 +1,9 @@
 import dream_mock_server/views/api_view
 import dream_test/matchers.{be_equal, or_fail_with, should}
-import dream_test/types.{type TestSuite}
+import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
 
-pub fn tests() -> TestSuite(Nil) {
+pub fn tests() -> TestSuite {
   describe("dream_mock_server/views/api_view", [
     group("get_to_json", [
       it("returns the method, url, query and empty headers", fn() {

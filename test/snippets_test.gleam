@@ -9,7 +9,7 @@ import dream/router.{EmptyServices}
 import dream_mock_server/config.{Exact, MockRoute, Prefix}
 import dream_mock_server/server
 import dream_test/matchers.{be_equal, or_fail_with, should}
-import dream_test/types.{type TestSuite}
+import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
 import fixtures/request as test_request
 import gleam/int
@@ -28,7 +28,7 @@ import snippets/programmatic_mode
 import snippets/release_1_1_0_config_mode
 import snippets/streaming_technique
 
-pub fn tests() -> TestSuite(Nil) {
+pub fn tests() -> TestSuite {
   describe("snippets", [
     programmatic_mode_tests(),
     config_mode_prefix_tests(),

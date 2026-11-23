@@ -4,12 +4,12 @@ import dream/router.{EmptyServices}
 import dream_mock_server/config.{Exact, MockConfigContext, MockRoute, Prefix}
 import dream_mock_server/controllers/config_controller
 import dream_test/matchers.{be_equal, or_fail_with, should}
-import dream_test/types.{type TestSuite}
+import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
 import fixtures/request as test_request
 import gleam/option.{None, Some}
 
-pub fn tests() -> TestSuite(Nil) {
+pub fn tests() -> TestSuite {
   describe("dream_mock_server/controllers/config_controller", [
     group("handle", [
       it("returns the route of an exact path match", fn() {

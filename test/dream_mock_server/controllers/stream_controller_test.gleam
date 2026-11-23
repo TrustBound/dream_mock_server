@@ -6,7 +6,7 @@ import dream/router.{EmptyServices}
 import dream_mock_server/controllers/stream_controller
 import dream_mock_server/views/index_view
 import dream_test/matchers.{be_equal, or_fail_with, should}
-import dream_test/types.{type TestSuite}
+import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
 import fixtures/request as test_request
 import fixtures/stream_chunks.{binary_chunks, huge_chunks}
@@ -17,7 +17,7 @@ import matchers/decompress_with.{decompress_with}
 import matchers/read_stream_chunks.{read_stream_chunks}
 import matchers/take_stream_chunks.{take_stream_chunks}
 
-pub fn tests() -> TestSuite(Nil) {
+pub fn tests() -> TestSuite {
   describe("dream_mock_server/controllers/stream_controller", [
     index_tests(),
     stream_fast_tests(),

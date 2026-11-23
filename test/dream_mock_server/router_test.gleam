@@ -8,12 +8,12 @@ import dream_mock_server/controllers/api_controller
 import dream_mock_server/controllers/stream_controller
 import dream_mock_server/router.{create_config_router, create_router} as _mock_router
 import dream_test/matchers.{be_equal, or_fail_with, should}
-import dream_test/types.{type TestSuite}
+import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
 import fixtures/request as test_request
 import gleam/option.{None}
 
-pub fn tests() -> TestSuite(Nil) {
+pub fn tests() -> TestSuite {
   describe("dream_mock_server/router", [
     group("create_router", [
       it("sends GET / to stream_controller.index", fn() {

@@ -1,9 +1,9 @@
 import dream_mock_server/views/index_view
 import dream_test/matchers.{match_snapshot, or_fail_with, should}
-import dream_test/types.{type TestSuite}
+import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
 
-pub fn tests() -> TestSuite(Nil) {
+pub fn tests() -> TestSuite {
   describe("dream_mock_server/views/index_view", [
     group("format_index", [
       it("returns the endpoint documentation page", fn() {

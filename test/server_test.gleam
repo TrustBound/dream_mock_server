@@ -4,7 +4,7 @@
 import dream_mock_server/config.{Exact, MockRoute}
 import dream_mock_server/server
 import dream_test/matchers.{be_equal, or_fail_with, should}
-import dream_test/types.{type TestSuite}
+import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
 import fixtures/http
 import fixtures/port
@@ -12,7 +12,7 @@ import gleam/int
 import gleam/option.{None}
 import gleam/otp/actor
 
-pub fn tests() -> TestSuite(Nil) {
+pub fn tests() -> TestSuite {
   describe("dream_mock_server/server", [
     start_tests(),
     start_with_config_tests(),

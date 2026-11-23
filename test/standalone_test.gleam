@@ -1,13 +1,13 @@
 //// Tests of the standalone entry point. It listens on the fixed port 3004.
 
 import dream_test/matchers.{be_equal, or_fail_with, should}
-import dream_test/types.{type TestSuite}
+import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
 import fixtures/http
 import gleam/erlang/process
 import standalone
 
-pub fn tests() -> TestSuite(Nil) {
+pub fn tests() -> TestSuite {
   describe("standalone", [
     group("main", [
       it("serves the built-in endpoints on port 3004", fn() {

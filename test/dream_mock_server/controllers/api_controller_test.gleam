@@ -6,14 +6,14 @@ import dream/router.{EmptyServices}
 import dream_mock_server/compression
 import dream_mock_server/controllers/api_controller
 import dream_test/matchers.{be_equal, or_fail_with, should}
-import dream_test/types.{type TestSuite}
+import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
 import fixtures/request as test_request
 import fixtures/response.{create_redirect_response} as _test_response
 import gleam/option.{Some}
 import gleam/string
 
-pub fn tests() -> TestSuite(Nil) {
+pub fn tests() -> TestSuite {
   describe("dream_mock_server/controllers/api_controller", [
     get_tests(),
     post_tests(),

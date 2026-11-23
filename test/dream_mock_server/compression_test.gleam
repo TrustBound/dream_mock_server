@@ -1,12 +1,12 @@
 import dream_mock_server/compression
 import dream_test/matchers.{be_equal, or_fail_with, should}
-import dream_test/types.{type TestSuite}
+import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
 import fixtures/zlib
 import gleam/bit_array
 import gleam/list
 
-pub fn tests() -> TestSuite(Nil) {
+pub fn tests() -> TestSuite {
   describe("dream_mock_server/compression", [
     group("gzip_compress", [
       it("returns gzip data that gunzips to the input", fn() {

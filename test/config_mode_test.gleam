@@ -6,13 +6,13 @@ import dream/http/request.{Get, Post}
 import dream_mock_server/config.{Exact, MockRoute, Prefix}
 import dream_mock_server/server
 import dream_test/matchers.{be_equal, or_fail_with, should}
-import dream_test/types.{type TestSuite}
+import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
 import fixtures/http
 import fixtures/port
 import gleam/option.{None, Some}
 
-pub fn tests() -> TestSuite(Nil) {
+pub fn tests() -> TestSuite {
   describe("config mode", [
     group("path matching", [
       it("returns the route of an exact path", fn() {

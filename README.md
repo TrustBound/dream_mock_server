@@ -383,13 +383,13 @@ Dream's HTTP client tests use the mock server in this way. This test starts the 
 ```gleam
 import dream_mock_server/server
 import dream_test/matchers.{be_equal, or_fail_with, should}
-import dream_test/types.{type TestSuite}
+import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, it}
 import gleam/int
 import snippets/http_helper
 import snippets/port
 
-pub fn tests() -> TestSuite(Nil) {
+pub fn tests() -> TestSuite {
   describe("mock server", [
     it("streams ten chunks from /stream/fast", fn() {
       // Arrange
