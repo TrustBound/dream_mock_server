@@ -19,8 +19,10 @@ This page lists every built-in endpoint of the server that `server.start(port)` 
 - A path segment with one file extension matches without it: `/text.json` matches `/text`, and `/status/418.json` answers status 418.
 - The query string isn't part of the match.
 - The match uses the method that the request sent. The server never changes a method into another method. A method that isn't standard, such as `PURGE`, matches no built-in endpoint, and its name is case-sensitive.
-- A request that matches no endpoint gets status 404 with the `text/plain; charset=utf-8` body `Route not found`. That includes a request with the wrong method, such as `GET /post`, `PURGE /text` or `TRACE /text`, and every HEAD and OPTIONS request.
+- A request that matches no endpoint gets status 404 with the `text/plain; charset=utf-8` body `Route not found`. That includes a request with the wrong method, such as `GET /post`, `PURGE /text` or `TRACE /text`, and every HEAD and OPTIONS request. A HEAD request gets the headers of that answer, with `content-length: 15`, and no body.
 - The server reads the request body only when an endpoint matches. A body larger than 10 MB, or a body it can't read, gets status 400 with an empty body.
+- When the server answers without a read of the whole request body, it closes the connection after the answer, and the answer has `connection: close`. The bytes of that body never get an answer of their own.
+- In config mode, HEAD and OPTIONS requests go to your routes, as every other method does. The [Stand in for a third-party API](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/stand-in-for-an-api.md#how-a-request-finds-its-route) guide gives the rules.
 - A body that isn't streamed goes out with a `content-length` header. A streamed body goes out with chunked transfer encoding, one chunk at a time.
 
 In the tables, `text/plain; charset=utf-8` and `application/json; charset=utf-8` are the full `Content-Type` values.

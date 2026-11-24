@@ -1,5 +1,6 @@
 -module(http_test_ffi).
--export([make_request_full/1, make_request_with_method/3, raw_request/2]).
+-export([make_request_full/1, make_request_with_method/3, raw_request/2,
+         raw_exchange/3]).
 
 %% GET request. Returns {ok, {StatusCode, Body}} or {error, Reason}.
 make_request_full(Url) when is_binary(Url) ->
@@ -72,4 +73,38 @@ receive_all(Socket, Received) ->
     case gen_tcp:recv(Socket, 0, 2000) of
         {ok, Data} -> receive_all(Socket, <<Received/binary, Data/binary>>);
         {error, _ClosedOrQuiet} -> Received
+    end.
+
+%% Sends First on one connection and reads what the server sends back until
+%% it closes the connection or is quiet for half a second. Then sends Second
+%% on the same connection and reads again until the server closes the
+%% connection or is quiet for two seconds. Returns
+%% {ok, {FirstAnswer, LaterAnswer, Closed}}: Closed is true when the server
+%% closed the connection. The socket stays open for the second send after the
+%% server closed its side, so that Second reaches the server.
+raw_exchange(Port, First, Second)
+  when is_integer(Port), is_binary(First), is_binary(Second) ->
+    Options = [binary, {active, false}, {exit_on_close, false}],
+    case gen_tcp:connect({127, 0, 0, 1}, Port, Options, 2000) of
+        {ok, Socket} ->
+            ok = gen_tcp:send(Socket, First),
+            {FirstAnswer, _FirstEnd} = receive_until_end(Socket, <<>>, 500),
+            _SendResult = gen_tcp:send(Socket, Second),
+            {LaterAnswer, LaterEnd} = receive_until_end(Socket, <<>>, 2000),
+            ok = gen_tcp:close(Socket),
+            {ok, {FirstAnswer, LaterAnswer, LaterEnd =:= closed}};
+        {error, Reason} ->
+            {error, reason_to_binary(Reason)}
+    end.
+
+%% Returns {Received, closed} when the server closed or reset the connection,
+%% and {Received, quiet} when no byte came for QuietMs milliseconds.
+receive_until_end(Socket, Received, QuietMs) ->
+    case gen_tcp:recv(Socket, 0, QuietMs) of
+        {ok, Data} ->
+            receive_until_end(Socket, <<Received/binary, Data/binary>>, QuietMs);
+        {error, timeout} ->
+            {Received, quiet};
+        {error, _ClosedOrReset} ->
+            {Received, closed}
     end.

@@ -806,7 +806,7 @@ pub fn tests() -> TestSuite {
       }),
     ]),
     group("answer rules in config mode", [
-      it("answers 404 Route not found for HEAD", fn() {
+      it("sends HEAD to the configured routes", fn() {
         // Arrange
         let mode = ConfiguredRoutes([MockRoute("/x", Prefix, None, 200, "x")])
         let request = test_request.create_request(Head, "/x")
@@ -817,10 +817,10 @@ pub fn tests() -> TestSuite {
         // Assert
         response
         |> should
-        |> be_equal(routes.route_not_found_response())
-        |> or_fail_with("Expected 404 Route not found")
+        |> be_equal(text_response(200, "x"))
+        |> or_fail_with("Expected the answer of the route")
       }),
-      it("answers 404 Route not found for OPTIONS", fn() {
+      it("sends OPTIONS to the configured routes", fn() {
         // Arrange
         let mode = ConfiguredRoutes([MockRoute("/x", Prefix, None, 200, "x")])
         let request = test_request.create_request(Options, "/x")
@@ -831,8 +831,8 @@ pub fn tests() -> TestSuite {
         // Assert
         response
         |> should
-        |> be_equal(routes.route_not_found_response())
-        |> or_fail_with("Expected 404 Route not found")
+        |> be_equal(text_response(200, "x"))
+        |> or_fail_with("Expected the answer of the route")
       }),
       it("sends the root path to the configured routes", fn() {
         // Arrange

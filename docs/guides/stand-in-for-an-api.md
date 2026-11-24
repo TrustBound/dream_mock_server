@@ -279,13 +279,38 @@ The rules in one place:
 | Matches the path and method of a route | The `status` and `body` of the first such route, in list order |
 | Matches the path of a route, but not its method | `404` with the body `Not found`, unless a later route matches |
 | Matches no route | `404` with the body `Not found` |
-| Method HEAD or OPTIONS | `404` with the body `Route not found`, before any route is checked |
+| Method HEAD | Matched as any other method is. The answer has the headers of the route, with its `content-length`, and no body |
+| Method OPTIONS | Matched as any other method is |
 | Method CONNECT, TRACE, or a method that isn't standard, such as `PURGE` | Matched with that method, as any other method is |
 
 A few details of the path match:
 
 - The query string isn't part of the path, so `Exact` with `/api/special` matches `/api/special?debug=1`.
 - `Exact` compares the whole path, so `/resource` doesn't match `/resource/`.
+
+A route with `None` matches every method, HEAD and OPTIONS included. A route with `Some(http.Get)` doesn't match HEAD. To answer HEAD, give a route with `Some(http.Head)` or `None`.
+
+A route with `Some(http.Options)` answers an OPTIONS request, for example a CORS preflight. A status 204 goes out with no body and no `content-length`:
+
+### Routes that answer a CORS preflight <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/test/snippets/config_mode_cors_preflight.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
+```gleam
+import dream_mock_server/config.{type MockRoute, Exact, MockRoute}
+import gleam/http.{Get, Options}
+import gleam/option.{Some}
+
+// OPTIONS /api/items -> 204 with no body
+// GET /api/items     -> 200 []
+// HEAD /api/items    -> 404 Not found (no route for HEAD)
+pub fn preflight_routes() -> List(MockRoute) {
+  [
+    MockRoute("/api/items", Exact, Some(Options), 204, ""),
+    MockRoute("/api/items", Exact, Some(Get), 200, "[]"),
+  ]
+}
+```
+
+A route can't add headers, so the 204 has no `Access-Control-Allow-Origin` header. A browser refuses that preflight. A client that sends OPTIONS and reads the status gets the 204.
 
 The server never changes a method into another method. A route with `Some(http.Trace)` matches only a TRACE request. For a method that isn't standard, give its name to `http.Other`. The name is case-sensitive, so `Other("PURGE")` matches `PURGE` and not `Purge`:
 
@@ -312,6 +337,7 @@ Config mode answers with fixed text, and that's all it does. Know these limits b
 - **No streaming.** The body is sent in one piece. To test a client that streams, use the built-in streaming endpoints, such as `GET /stream/json`, with `server.start`.
 - **No record of requests.** The stand-in doesn't keep the requests it got, and it doesn't check headers or the body. It answers a request without the `authorization` header just the same. To check what your client sends, use the echo endpoints of the built-in server, as in [Getting started](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/getting-started.md#step-3-check-what-your-code-sends).
 - **No built-in endpoints.** A config mode server serves only your routes. `GET /text` on it gets `404` with `Not found`, unless one of your routes matches it.
+- **No headers of your own.** A route sets the status and the body only. A CORS preflight gets the 204 of its route, but no `Access-Control-Allow-*` header, so a browser refuses it.
 - **Routes are fixed at start.** To change the answers, stop the server and start one with other routes.
 
 ## Test your code
@@ -392,7 +418,7 @@ Each test starts the stand-in for its scenario, calls `ask`, stops the stand-in,
 
 **A test that needs the request.** *Symptom:* you want to assert the JSON your client sent to the stand-in, and there's no way to get it. *Fix:* config mode keeps no record. Send the same request to `POST /post` of the built-in server, which echoes the body, as in [Getting started](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/getting-started.md#step-3-check-what-your-code-sends).
 
-**A 404 with `Route not found`.** *Symptom:* a request gets `404` with `Route not found` instead of your route's answer. *Fix:* the request used HEAD or OPTIONS. Config mode answers those before it checks the routes.
+**A 404 for HEAD.** *Symptom:* a GET request gets your route's answer, but a HEAD request to the same path gets `404`. *Fix:* a route with `Some(http.Get)` matches only GET. Use `None`, or add a route with `Some(http.Head)`.
 
 ## Where to go next
 

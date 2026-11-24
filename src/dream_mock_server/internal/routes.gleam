@@ -33,9 +33,9 @@
 //// ## Config mode
 ////
 //// In config mode every request goes to
-//// `dream_mock_server/internal/config_endpoint.handle`, for every path,
-//// except a request with the method HEAD or OPTIONS. HEAD and OPTIONS get
-//// the 404 `Route not found` response.
+//// `dream_mock_server/internal/config_endpoint.handle`, for every path and
+//// every method, HEAD and OPTIONS included. The server reads the body of
+//// each request in config mode.
 
 import dream_mock_server/config.{type MockRoute}
 import dream_mock_server/internal/built_in_endpoints.{
@@ -120,7 +120,7 @@ pub fn find_endpoint(
 ) -> Result(Endpoint, Nil) {
   case mode {
     BuiltInEndpoints -> find_built_in_endpoint(method, request_path)
-    ConfiguredRoutes(routes) -> find_config_endpoint(method, routes)
+    ConfiguredRoutes(routes) -> Ok(config_endpoint.handle(_, routes))
   }
 }
 
@@ -162,16 +162,6 @@ fn handler_endpoint(handler: Handler) -> Endpoint {
 /// - `dream_mock_server/views/index_view.format_index`
 pub fn index(_request: Request) -> Response {
   text_response(200, index_view.format_index())
-}
-
-fn find_config_endpoint(
-  method: Method,
-  routes: List(MockRoute),
-) -> Result(Endpoint, Nil) {
-  case method {
-    http.Head | http.Options -> Error(Nil)
-    _other_method -> Ok(config_endpoint.handle(_, routes))
-  }
 }
 
 fn pattern_matches(pattern: List(Segment), segments: List(String)) -> Bool {

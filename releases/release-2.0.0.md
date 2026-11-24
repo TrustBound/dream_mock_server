@@ -21,7 +21,7 @@ It is a major version because the handle of a running server and the method of a
 
 Before this release, the mock server was a Dream application, so a project that used it also got Dream. That made a circle between packages: Dream's tests use `dream_http_client`, the client's tests use the mock server, and the mock server needed Dream.
 
-The mock server now runs directly on `dream_http_server`, the HTTP server below Dream. Inside, a core with no socket decides each answer, and a thin adapter reads the request and sends bytes or a chunked stream.
+The mock server now runs directly on `dream_http_server` 2.0.0, the HTTP server below Dream. Inside, a core with no socket decides each answer, and a thin adapter reads the request and sends bytes or a chunked stream.
 
 ### Start, Use and Stop the Server
 
@@ -57,7 +57,7 @@ fn start_server(port: Int) -> Result(server.ServerHandle, String) {
 
 ### Every Endpoint Except `GET /` Answers as Before
 
-No other endpoint changed. To prove that, 55 requests were recorded on the old code, one or more for each endpoint. Each one gets the same raw HTTP answer on the new code, except `GET /`. Its info page is fixed, as [Bug Fixes](#bug-fixes) tells. A request with the method CONNECT, TRACE or a method that is not standard now gets 404 on the built-in endpoints, because the server no longer changes its method into GET. [Bug Fixes](#bug-fixes) also tells about this change.
+No other endpoint changed. To prove that, 55 requests were recorded on the old code, one or more for each endpoint. Each one gets the same raw HTTP answer on the new code, except `GET /`. Its info page is fixed, as [Bug Fixes](#bug-fixes) tells. A request with the method CONNECT, TRACE or a method that is not standard now gets 404 on the built-in endpoints, because the server no longer changes its method into GET. [Bug Fixes](#bug-fixes) also tells about this change. Three of the 55 requests send a body to a path with no endpoint: their 404 answer now has `connection: close` in place of `connection: keep-alive`, because the server below closes a connection whose request body it did not read.
 
 ### Integration Scenarios Run in `gleam test`
 
@@ -76,18 +76,19 @@ The package has four guides in [`docs/guides/`](https://github.com/TrustBound/dr
 - **The info page of `GET /` lists every built-in endpoint**: before, `index_view.format_index()` listed 15 of the 40 built-in endpoints. Now the page and the route match use one table of the built-in endpoints, so the page cannot leave out an endpoint that answers.
 - **The info page names no fixed port**: before, it always said `Server: localhost:3004`, also on other ports. The line `Content-Type: All endpoints return appropriate MIME types` is also gone.
 - **The info page tells the order of `/stream/error` correctly**: status 500 comes first, then 3 chunks. Before, the page said "3 chunks then 500 status".
-- **A request keeps its method**: before, the server changed the methods CONNECT, TRACE and every method that is not standard, such as `PURGE`, into GET. So `TRACE /text` and `PURGE /text` got the answer of `GET /text`, and a `MockRoute` with one of those methods could never match. Now the route match uses the method that the request sent. On the built-in endpoints, `PURGE /text` and `TRACE /text` get status 404 with the body `Route not found`, the same answer as `DELETE /text`. In config mode, a route with `Some(http.Other("PURGE"))`, `Some(http.Trace)` or `Some(http.Connect)` matches a request with that method, and a route with `None` matches every method as before. A method name is case-sensitive, so `Purge` does not match `Other("PURGE")`. GET, POST, PUT, PATCH, DELETE, HEAD and OPTIONS get the same answers as before.
+- **A request keeps its method**: before, the server changed the methods CONNECT, TRACE and every method that is not standard, such as `PURGE`, into GET. So `TRACE /text` and `PURGE /text` got the answer of `GET /text`, and a `MockRoute` with one of those methods could never match. Now the route match uses the method that the request sent. On the built-in endpoints, `PURGE /text` and `TRACE /text` get status 404 with the body `Route not found`, the same answer as `DELETE /text`. In config mode, a route with `Some(http.Other("PURGE"))`, `Some(http.Trace)` or `Some(http.Connect)` matches a request with that method, and a route with `None` matches every method as before. A method name is case-sensitive, so `Purge` does not match `Other("PURGE")`. GET, POST, PUT, PATCH, DELETE, HEAD and OPTIONS get the same answers as before on the built-in endpoints.
+- **HEAD and OPTIONS reach the routes in config mode**: before, a HEAD or OPTIONS request got 404 `Route not found` before any route was checked, so a `MockRoute` with `Some(http.Head)` or `Some(http.Options)` could never match. Now these requests go to the routes as every other method does. A route with `Some(http.Options)` answers OPTIONS, for example a CORS preflight with status 204. A route with `Some(http.Head)` or `None` answers HEAD with the headers of the route and no body. A request that matches no route gets 404 `Not found`, as for every other method.
+- **A request body that the server does not read is never answered as a request**: `dream_http_server` 2.0.0 closes the connection after an answer when the request body was not read to its end, so the bytes of that body cannot reach the server as a second request.
 
 ## Known Limits
 
-- In config mode, a HEAD or OPTIONS request gets 404 `Route not found` before any route is checked, as before. A `MockRoute` with one of those two methods can never match
 - The `standalone` module stops with a panic when port 3004 is in use, as before
 
 ## Testing
 
-- 316 tests run, 0 failed, in about 60 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (326 of 326 lines)
+- 339 tests run, 0 failed, in about 65 seconds with the coverage check (Apple M1 Max, OTP 29, Gleam 1.19.2). Line coverage of `src/` is 100% (323 of 323 lines)
 - `scripts/run-server-smoke.sh` starts and stops each command of the guide "Run the server while you develop" that serves until you stop it, in about 2 seconds
-- Each of 55 recorded requests gets the same raw HTTP answer as before the move to `dream_http_server`, except `GET /`, whose info page is fixed
+- Each of 55 recorded requests gets the same raw HTTP answer as before the move to `dream_http_server`, except `GET /`, whose info page is fixed, and three requests with a body to a path with no endpoint, whose 404 answer now has `connection: close`
 
 ## Upgrading
 
@@ -144,7 +145,7 @@ These are removed:
 ## Documentation
 
 - [dream_mock_server](https://hexdocs.pm/dream_mock_server) - v2.0.0
-- [dream_http_server](https://hexdocs.pm/dream_http_server) - v1.3.1
+- [dream_http_server](https://hexdocs.pm/dream_http_server) - v2.0.0
 - [README](https://github.com/TrustBound/dream_mock_server/blob/main/README.md)
 - [Getting started](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/getting-started.md)
 - [Test how your client handles failures](https://github.com/TrustBound/dream_mock_server/blob/main/docs/guides/testing-failures.md)

@@ -35,8 +35,10 @@ pub type PathMatch {
 ///   method. The match uses the method that the request sent, so
 ///   `Some(http.Trace)` matches a TRACE request and
 ///   `Some(http.Other("PURGE"))` matches a PURGE request. The name in
-///   `Other` is case-sensitive. A request with the method HEAD or OPTIONS
-///   matches no route.
+///   `Other` is case-sensitive. HEAD and OPTIONS match as every other
+///   method does: `Some(http.Options)` answers an OPTIONS request, for
+///   example a CORS preflight, and `Some(http.Head)` or `None` answers HEAD.
+///   The answer to HEAD has the headers of the route and no body.
 /// - `status`: The HTTP status code of the response.
 /// - `body`: The response body, sent as it is with the content type
 ///   `text/plain; charset=utf-8`.

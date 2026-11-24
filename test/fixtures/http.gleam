@@ -46,6 +46,75 @@ pub fn raw_status_and_body(
   }
 }
 
+/// Sends raw request text to the local server at `port`. Returns every
+/// byte of the answer as text, without the `date` header line, for example
+/// `"HTTP/1.1 404 Not Found\r\n...\r\n\r\nRoute not found"`, or the
+/// connection error. Send `connection: close` so that the server closes the
+/// connection after the answer.
+pub fn raw_answer(port: Int, request: String) -> Result(String, String) {
+  case raw_request(port, <<request:utf8>>) {
+    Ok(answer) -> Ok(without_date_line(to_text(answer)))
+    Error(reason) -> Error(to_text(reason))
+  }
+}
+
+/// How a connection was at the end of a `raw_exchange`.
+pub type ConnectionEnding {
+  /// The server closed the connection.
+  ServerClosed
+  /// The connection was still open after two seconds with no byte.
+  StillOpen
+}
+
+/// What a client got on one connection in a `raw_exchange`. Each answer is
+/// all the text that came, without its `date` header lines, and is `""`
+/// when no byte came.
+pub type Exchange {
+  Exchange(first_answer: String, later_answer: String, ending: ConnectionEnding)
+}
+
+@external(erlang, "http_test_ffi", "raw_exchange")
+fn raw_exchange_bytes(
+  port: Int,
+  first: BitArray,
+  second: BitArray,
+) -> Result(#(BitArray, BitArray, Bool), BitArray)
+
+/// Sends `first` to the local server at `port` and reads what comes back
+/// until the server closes the connection or sends nothing for half a
+/// second. Then sends `second` on the same connection and reads again until
+/// the server closes the connection or sends nothing for two seconds.
+/// Returns the two answers and how the connection ended, or the connection
+/// error.
+pub fn raw_exchange(
+  port: Int,
+  first: String,
+  second: String,
+) -> Result(Exchange, String) {
+  case raw_exchange_bytes(port, <<first:utf8>>, <<second:utf8>>) {
+    Ok(#(first_answer, later_answer, closed)) ->
+      Ok(Exchange(
+        first_answer: without_date_line(to_text(first_answer)),
+        later_answer: without_date_line(to_text(later_answer)),
+        ending: connection_ending(closed),
+      ))
+    Error(reason) -> Error(to_text(reason))
+  }
+}
+
+fn connection_ending(closed: Bool) -> ConnectionEnding {
+  case closed {
+    True -> ServerClosed
+    False -> StillOpen
+  }
+}
+
+fn without_date_line(text: String) -> String {
+  string.split(text, "\r\n")
+  |> list.filter(fn(line) { !string.starts_with(line, "date: ") })
+  |> string.join("\r\n")
+}
+
 fn status_line_and_body(text: String) -> #(String, String) {
   let #(head, body) =
     string.split_once(text, "\r\n\r\n")

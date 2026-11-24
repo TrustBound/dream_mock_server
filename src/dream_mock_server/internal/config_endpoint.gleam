@@ -1,10 +1,11 @@
 //// The endpoint of config mode.
 ////
 //// When the server runs with `server.start_with_config`, every request
-//// comes to `handle`, except a request with the method HEAD or OPTIONS. The
-//// method is the method that the request sent. It returns
-//// the status and body of the first `MockRoute` that matches the request, or
-//// 404 when no route matches.
+//// comes to `handle`, with the method that the request sent, HEAD and
+//// OPTIONS included. It returns the status and body of the first `MockRoute`
+//// that matches the request, or 404 when no route matches. For a HEAD
+//// request, `dream_http_server` sends the headers of this response and no
+//// body.
 
 import dream_mock_server/config.{type MockRoute, type PathMatch, Exact, Prefix}
 import dream_mock_server/internal/message.{

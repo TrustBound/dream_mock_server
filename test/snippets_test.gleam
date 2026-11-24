@@ -28,6 +28,7 @@ import snippets/compression_deflate
 import snippets/compression_deflate_chunks
 import snippets/compression_gzip
 import snippets/compression_gzip_chunks
+import snippets/config_mode_cors_preflight
 import snippets/config_mode_custom_method
 import snippets/config_mode_method_specific
 import snippets/config_mode_ordering
@@ -46,6 +47,7 @@ pub fn tests() -> TestSuite {
     config_mode_prefix_tests(),
     config_mode_method_specific_tests(),
     config_mode_custom_method_tests(),
+    config_mode_cors_preflight_tests(),
     config_mode_ordering_tests(),
     programmatic_control_tests(),
     streaming_technique_tests(),
@@ -230,6 +232,80 @@ fn config_mode_custom_method_tests() {
       |> should
       |> be_equal(Ok(#("HTTP/1.1 404 Not Found", "Not found")))
       |> or_fail_with("Expected 404 for Purge")
+    }),
+  ])
+}
+
+fn config_mode_cors_preflight_tests() {
+  group("config_mode_cors_preflight.preflight_routes", [
+    it("answers OPTIONS with 204 and no body", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) =
+        server.start_with_config(
+          port,
+          config_mode_cors_preflight.preflight_routes(),
+        )
+      let request =
+        "OPTIONS /api/items HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+      // Act
+      let answer = raw_http.raw_answer(port, request)
+      server.stop(handle)
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(
+        "HTTP/1.1 204 No Content\r\ncontent-type: text/plain; charset=utf-8\r\nconnection: close\r\n\r\n",
+      ))
+      |> or_fail_with("Expected 204 with no body")
+    }),
+    it("answers GET with 200 and []", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) =
+        server.start_with_config(
+          port,
+          config_mode_cors_preflight.preflight_routes(),
+        )
+      let request =
+        "GET /api/items HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+      // Act
+      let answer = raw_http.raw_answer(port, request)
+      server.stop(handle)
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(
+        "HTTP/1.1 200 OK\r\ncontent-type: text/plain; charset=utf-8\r\nconnection: close\r\ncontent-length: 2\r\n\r\n[]",
+      ))
+      |> or_fail_with("Expected 200 with []")
+    }),
+    it("answers HEAD with the 404 headers and no body", fn() {
+      // Arrange
+      let port = port.free_port()
+      let assert Ok(handle) =
+        server.start_with_config(
+          port,
+          config_mode_cors_preflight.preflight_routes(),
+        )
+      let request =
+        "HEAD /api/items HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+      // Act
+      let answer = raw_http.raw_answer(port, request)
+      server.stop(handle)
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(
+        "HTTP/1.1 404 Not Found\r\ncontent-type: text/plain; charset=utf-8\r\nconnection: close\r\ncontent-length: 9\r\n\r\n",
+      ))
+      |> or_fail_with("Expected the 404 Not found headers and no body")
     }),
   ])
 }

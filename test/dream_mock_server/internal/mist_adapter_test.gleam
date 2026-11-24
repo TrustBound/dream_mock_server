@@ -62,6 +62,44 @@ pub fn tests() -> TestSuite {
         |> be_equal(Ok("HTTP/1.1 404 Not Found"))
         |> or_fail_with("Expected 404 for HEAD")
       }),
+      it("answers HEAD on a built-in path with 404 headers and no body", fn() {
+        // Arrange
+        let port = port.free_port()
+        let assert Ok(handle) = server.start(port)
+        let request =
+          "HEAD /text HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+        // Act
+        let answer = http.raw_answer(port, request)
+        server.stop(handle)
+
+        // Assert
+        answer
+        |> should
+        |> be_equal(Ok(
+          "HTTP/1.1 404 Not Found\r\ncontent-type: text/plain; charset=utf-8\r\nconnection: close\r\ncontent-length: 15\r\n\r\n",
+        ))
+        |> or_fail_with("Expected the 404 headers and no body bytes")
+      }),
+      it("answers OPTIONS on a built-in path with 404 Route not found", fn() {
+        // Arrange
+        let port = port.free_port()
+        let assert Ok(handle) = server.start(port)
+        let request =
+          "OPTIONS /text HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n"
+
+        // Act
+        let answer = http.raw_answer(port, request)
+        server.stop(handle)
+
+        // Assert
+        answer
+        |> should
+        |> be_equal(Ok(
+          "HTTP/1.1 404 Not Found\r\ncontent-type: text/plain; charset=utf-8\r\nconnection: close\r\ncontent-length: 15\r\n\r\nRoute not found",
+        ))
+        |> or_fail_with("Expected 404 Route not found")
+      }),
     ]),
   ])
 }

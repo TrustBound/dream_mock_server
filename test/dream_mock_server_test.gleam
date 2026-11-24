@@ -29,6 +29,7 @@ import server_test
 import snippets/integration_testing
 import snippets_test
 import standalone_test
+import unread_body_test
 
 pub fn main() {
   runner.new([
@@ -46,6 +47,7 @@ pub fn main() {
     standalone_runner_test.tests(),
     server_test.tests(),
     config_mode_test.tests(),
+    unread_body_test.tests(),
     standalone_test.tests(),
     snippets_test.tests(),
     integration_testing.tests(),

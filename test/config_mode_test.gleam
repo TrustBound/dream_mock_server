@@ -2,14 +2,14 @@
 //// connections: path matching (exact, prefix, first match), method
 //// filtering, status and body, and requests that match no route.
 
-import dream_mock_server/config.{Exact, MockRoute, Prefix}
+import dream_mock_server/config.{type MockRoute, Exact, MockRoute, Prefix}
 import dream_mock_server/server
 import dream_test/matchers.{be_equal, or_fail_with, should}
 import dream_test/suite.{type TestSuite}
 import dream_test/unit.{describe, group, it}
 import fixtures/http
 import fixtures/port
-import gleam/http.{Connect, Get, Other, Post, Trace} as _gleam_http
+import gleam/http.{Connect, Get, Head, Options, Other, Post, Trace} as _gleam_http
 import gleam/option.{None, Some}
 
 pub fn tests() -> TestSuite {
@@ -518,5 +518,199 @@ pub fn tests() -> TestSuite {
         |> or_fail_with("Expected Ok(#(404, 'Not found'))")
       }),
     ]),
+    head_and_options_tests(),
   ])
+}
+
+fn head_and_options_tests() {
+  group("HEAD and OPTIONS", [
+    it("answers a CORS preflight with the OPTIONS route", fn() {
+      // Arrange
+      let routes = preflight_routes()
+
+      // Act
+      let answer = raw_answer_with_routes(routes, "OPTIONS /api/items")
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(
+        "HTTP/1.1 204 No Content\r\ncontent-type: text/plain; charset=utf-8\r\nconnection: close\r\n\r\n",
+      ))
+      |> or_fail_with("Expected 204 with no body and no content-length")
+    }),
+    it("answers GET on the path of the preflight with the GET route", fn() {
+      // Arrange
+      let routes = preflight_routes()
+
+      // Act
+      let answer = raw_answer_with_routes(routes, "GET /api/items")
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(
+        "HTTP/1.1 200 OK\r\ncontent-type: text/plain; charset=utf-8\r\nconnection: close\r\ncontent-length: 2\r\n\r\n[]",
+      ))
+      |> or_fail_with("Expected 200 with the body []")
+    }),
+    it("answers HEAD with a HEAD route: headers and no body", fn() {
+      // Arrange
+      let routes = [MockRoute("/file", Exact, Some(Head), 200, "hello")]
+
+      // Act
+      let answer = raw_answer_with_routes(routes, "HEAD /file")
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(
+        "HTTP/1.1 200 OK\r\ncontent-type: text/plain; charset=utf-8\r\nconnection: close\r\ncontent-length: 5\r\n\r\n",
+      ))
+      |> or_fail_with("Expected the headers of the route and no body bytes")
+    }),
+    it("does not answer GET with a HEAD route", fn() {
+      // Arrange
+      let routes = [MockRoute("/file", Exact, Some(Head), 200, "hello")]
+
+      // Act
+      let answer = raw_answer_with_routes(routes, "GET /file")
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(not_found_answer))
+      |> or_fail_with("Expected 404 Not found")
+    }),
+    it("does not answer HEAD with a GET route", fn() {
+      // Arrange
+      let routes = [MockRoute("/file", Exact, Some(Get), 200, "hello")]
+
+      // Act
+      let answer = raw_answer_with_routes(routes, "HEAD /file")
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(not_found_head_answer))
+      |> or_fail_with("Expected the 404 Not found headers and no body bytes")
+    }),
+    it("answers HEAD and GET with a route of every method", fn() {
+      // Arrange
+      let routes = [MockRoute("/file", Exact, None, 200, "hello")]
+
+      // Act
+      let answers = #(
+        raw_answer_with_routes(routes, "HEAD /file"),
+        raw_answer_with_routes(routes, "GET /file"),
+      )
+
+      // Assert
+      answers
+      |> should
+      |> be_equal(#(
+        Ok(
+          "HTTP/1.1 200 OK\r\ncontent-type: text/plain; charset=utf-8\r\nconnection: close\r\ncontent-length: 5\r\n\r\n",
+        ),
+        Ok(
+          "HTTP/1.1 200 OK\r\ncontent-type: text/plain; charset=utf-8\r\nconnection: close\r\ncontent-length: 5\r\n\r\nhello",
+        ),
+      ))
+      |> or_fail_with("Expected the GET headers for HEAD, with no body")
+    }),
+    it("answers OPTIONS with a route of every method", fn() {
+      // Arrange
+      let routes = [MockRoute("/file", Exact, None, 200, "hello")]
+
+      // Act
+      let answer = raw_answer_with_routes(routes, "OPTIONS /file")
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(
+        "HTTP/1.1 200 OK\r\ncontent-type: text/plain; charset=utf-8\r\nconnection: close\r\ncontent-length: 5\r\n\r\nhello",
+      ))
+      |> or_fail_with("Expected 200 with the body hello")
+    }),
+    it("answers HEAD with no route: 404 Not found headers, no body", fn() {
+      // Arrange
+      let routes = [MockRoute("/file", Exact, Some(Post), 200, "hello")]
+
+      // Act
+      let answer = raw_answer_with_routes(routes, "HEAD /nope")
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(not_found_head_answer))
+      |> or_fail_with("Expected the 404 Not found headers and no body bytes")
+    }),
+    it("answers OPTIONS with no route: 404 Not found", fn() {
+      // Arrange
+      let routes = [MockRoute("/file", Exact, Some(Post), 200, "hello")]
+
+      // Act
+      let answer = raw_answer_with_routes(routes, "OPTIONS /nope")
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(not_found_answer))
+      |> or_fail_with("Expected 404 Not found")
+    }),
+    it("sends a 204 route with no body and no content-length", fn() {
+      // Arrange
+      let routes = [MockRoute("/gone", Exact, None, 204, "")]
+
+      // Act
+      let answer = raw_answer_with_routes(routes, "GET /gone")
+
+      // Assert
+      answer
+      |> should
+      |> be_equal(Ok(
+        "HTTP/1.1 204 No Content\r\ncontent-type: text/plain; charset=utf-8\r\nconnection: close\r\n\r\n",
+      ))
+      |> or_fail_with("Expected 204 with no body and no content-length")
+    }),
+  ])
+}
+
+/// An OPTIONS route that answers a CORS preflight with 204, and a GET route
+/// on the same path.
+fn preflight_routes() -> List(MockRoute) {
+  [
+    MockRoute("/api/items", Exact, Some(Options), 204, ""),
+    MockRoute("/api/items", Exact, Some(Get), 200, "[]"),
+  ]
+}
+
+/// The config mode answer when no route matches, on a connection that
+/// closes after it.
+const not_found_answer =
+  "HTTP/1.1 404 Not Found\r\ncontent-type: text/plain; charset=utf-8\r\nconnection: close\r\ncontent-length: 9\r\n\r\nNot found"
+
+/// The answer to HEAD when no route matches: the headers of
+/// `not_found_answer` and no body.
+const not_found_head_answer =
+  "HTTP/1.1 404 Not Found\r\ncontent-type: text/plain; charset=utf-8\r\nconnection: close\r\ncontent-length: 9\r\n\r\n"
+
+/// Starts config mode with `routes`, sends one request with the request
+/// line `method_and_path`, and returns every byte of the answer without the
+/// `date` header line.
+fn raw_answer_with_routes(
+  routes: List(MockRoute),
+  method_and_path: String,
+) -> Result(String, String) {
+  let port = port.free_port()
+  let assert Ok(handle) = server.start_with_config(port, routes)
+  let answer =
+    http.raw_answer(
+      port,
+      method_and_path
+        <> " HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n",
+    )
+  server.stop(handle)
+  answer
 }

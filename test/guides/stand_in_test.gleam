@@ -181,7 +181,7 @@ pub fn tests() -> TestSuite {
       |> be_equal(Ok(#(404, "Not found")))
       |> or_fail_with("Expected 404 for GET")
     }),
-    it("routes: an OPTIONS request gives 404 Route not found", fn() {
+    it("routes: an OPTIONS request reaches the routes", fn() {
       // Act
       let answer =
         send_with_routes(
@@ -194,8 +194,8 @@ pub fn tests() -> TestSuite {
       // Assert
       answer
       |> should
-      |> be_equal(Ok(#(404, "Route not found")))
-      |> or_fail_with("Expected 404 Route not found for OPTIONS")
+      |> be_equal(Ok(#(200, "special")))
+      |> or_fail_with("Expected the answer of the /api/special route")
     }),
     it("limits: every route answers with the text/plain content type", fn() {
       // Arrange
