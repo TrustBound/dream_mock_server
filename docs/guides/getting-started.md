@@ -39,13 +39,13 @@ The examples send their requests with [gleam_httpc](https://hexdocs.pm/gleam_htt
 gleam add --dev gleam_httpc
 ```
 
-The test modules use [dream_test](https://github.com/TrustBound/dream_test). It isn't on Hex yet, so add it from GitHub, with the commit that this package tests with:
+The test modules use [dream_test](https://github.com/TrustBound/dream_test). Add it as a dev dependency, with the version range that this package tests with:
 
-### The dev dependency on dream_test <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/gleam.toml#L34-L35"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+### The dev dependency on dream_test <a href="https://github.com/TrustBound/dream_mock_server/blob/2.0.0/gleam.toml#L31-L32"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
 
 ```toml
 [dev-dependencies]
-dream_test = { git = "https://github.com/TrustBound/dream_test.git", ref = "1639959578a14ae3577f8e3ae5cac058f933aa53" }
+dream_test = ">= 3.0.0 and < 4.0.0"
 ```
 
 The mock server doesn't depend on the Dream web framework. A project on any version of Dream, or on no Dream at all, can use it.

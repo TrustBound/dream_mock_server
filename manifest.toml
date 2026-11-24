@@ -8,9 +8,9 @@
 
 packages = [
   { name = "dream_http_server", version = "2.0.0", build_tools = ["gleam"], requirements = ["dream_socket_server", "exception", "gleam_erlang", "gleam_http", "gleam_otp", "gleam_stdlib", "gramps", "hpack_erl", "logging"], otp_app = "dream_http_server", source = "hex", outer_checksum = "32F201728D98E1C645CCE1072E4CF3DA990FE37484AE6B7AF854A2086DA3A8DC" },
-  { name = "dream_snippets", version = "1.0.0", build_tools = ["gleam"], requirements = ["gleam_stdlib", "simplifile", "tom"], source = "git", repo = "https://github.com/TrustBound/dream_snippets.git", commit = "96cf9a146a608e5cf82afab23600eec852de3d6b" },
+  { name = "dream_snippets", version = "1.0.0", build_tools = ["gleam"], requirements = ["gleam_stdlib", "simplifile", "tom"], otp_app = "dream_snippets", source = "hex", outer_checksum = "77912484128E2B5791115E920FA651B78D0D7139A0BD9C222EECD1CC8372EDFC" },
   { name = "dream_socket_server", version = "1.0.1", build_tools = ["gleam"], requirements = ["gleam_erlang", "gleam_otp", "gleam_stdlib", "logging"], otp_app = "dream_socket_server", source = "hex", outer_checksum = "9043F4BAA79086C48BB6A7DC1E0BB8B5E4A555E3CE9E95805489743D2B331D91" },
-  { name = "dream_test", version = "3.0.0", build_tools = ["gleam"], requirements = ["gleam_erlang", "gleam_json", "gleam_otp", "gleam_regexp", "gleam_stdlib"], source = "git", repo = "https://github.com/TrustBound/dream_test.git", commit = "1639959578a14ae3577f8e3ae5cac058f933aa53" },
+  { name = "dream_test", version = "3.0.0", build_tools = ["gleam"], requirements = ["gleam_erlang", "gleam_json", "gleam_otp", "gleam_regexp", "gleam_stdlib"], otp_app = "dream_test", source = "hex", outer_checksum = "879355A0F8180EE7160F672C1F9E6672ED38E5001D6C0125BEA8E4B95C3AFF4B" },
   { name = "exception", version = "2.1.1", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "exception", source = "hex", outer_checksum = "6BDEA95248093599391C3B5DF1835C5C6A86C353C2F99CE539B450E3432FE117" },
   { name = "filepath", version = "1.1.2", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "filepath", source = "hex", outer_checksum = "B06A9AF0BF10E51401D64B98E4B627F1D2E48C154967DA7AF4D0914780A6D40A" },
   { name = "gleam_crypto", version = "1.6.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_crypto", source = "hex", outer_checksum = "2DE9E4EF53CF6FEE049D4F765731F7178F7A11AEFAE00EEE63BF7536B354AD3F" },
@@ -32,8 +32,8 @@ packages = [
 
 [requirements]
 dream_http_server = { version = ">= 2.0.0 and < 3.0.0" }
-dream_snippets = { git = "https://github.com/TrustBound/dream_snippets.git", ref = "96cf9a146a608e5cf82afab23600eec852de3d6b" }
-dream_test = { git = "https://github.com/TrustBound/dream_test.git", ref = "1639959578a14ae3577f8e3ae5cac058f933aa53" }
+dream_snippets = { version = ">= 1.0.0 and < 2.0.0" }
+dream_test = { version = ">= 3.0.0 and < 4.0.0" }
 gleam_erlang = { version = ">= 1.0.0 and < 2.0.0" }
 gleam_http = { version = ">= 4.0.0 and < 5.0.0" }
 gleam_httpc = { version = ">= 5.0.0 and < 6.0.0" }

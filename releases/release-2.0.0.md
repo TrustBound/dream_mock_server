@@ -1,6 +1,6 @@
 # dream_mock_server 2.0.0 Release Notes
 
-**Release Date:** not released yet (draft)
+**Release Date:** 2026-11-24
 
 This release builds the mock server directly on `dream_http_server`. It no longer depends on the Dream web framework. A project on any Dream version, or on no Dream at all, can use it to test an HTTP client.
 
