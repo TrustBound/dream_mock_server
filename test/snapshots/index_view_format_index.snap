@@ -1,0 +1,133 @@
+Mock Server - Testing & Demo Endpoints
+
+This server provides both streaming and non-streaming endpoints for testing HTTP clients.
+
+Info Page:
+
+  GET /
+    Text page that lists every built-in endpoint
+
+Non-Streaming Endpoints:
+
+  GET /get
+    Path and query as JSON
+
+  POST /post
+    Request body as JSON, with status 201
+
+  POST /content-type
+    The Content-Type of the request as text
+
+  PUT /put
+    Request body as JSON
+
+  PATCH /patch
+    Request body as JSON
+
+  DELETE /delete
+    Path as JSON
+
+  GET /json
+    A fixed JSON object
+
+  GET /text
+    Hello, World! as text
+
+  GET /uuid
+    A fixed UUID as JSON
+
+  GET /status/:code
+    Status code, with the code as JSON
+
+  GET /large
+    A text body of 1,140,000 bytes
+
+  GET /empty
+    An empty text body
+
+  GET /slow
+    A short text after 5 seconds
+
+Compression Endpoints:
+
+  GET /gzip
+    Hello, World! compressed with gzip
+
+  GET /deflate
+    Hello, World! compressed with deflate
+
+  GET /identity
+    Hello, World! with Content-Encoding: identity
+
+  GET /unknown-encoding
+    Text with Content-Encoding: br, not compressed
+
+  GET /corrupted-gzip
+    Content-Encoding: gzip with bytes that are not gzip
+
+  GET /echo-accept-encoding
+    The Accept-Encoding of the request as text
+
+  GET /non-utf8-error
+    Status 400 with a body that is not UTF-8
+
+Redirect Endpoints:
+
+  GET /redirect/301
+    Status 301 to /text
+
+  GET /redirect/302
+    Status 302 to /text
+
+  GET /redirect/303
+    Status 303 to /text
+
+  GET /redirect/307
+    Status 307 to /text
+
+  GET /redirect/308
+    Status 308 to /text
+
+  GET /redirect/chain
+    Status 302 to /redirect/chain/2
+
+  GET /redirect/chain/2
+    Status 302 to /text
+
+  GET /redirect/absolute
+    Status 302 to /text as a full URL
+
+Streaming Endpoints:
+
+  GET /stream/fast
+    10 chunks, one each 100 ms
+
+  GET /stream/slow
+    5 chunks, one each 2 s
+
+  GET /stream/burst
+    7 chunks with fixed, different delays (100-500 ms)
+
+  GET /stream/error
+    Status 500 first, then 3 chunks, one each 100 ms
+
+  GET /stream/huge
+    100 chunks, one each 10 ms
+
+  GET /stream/drop
+    2 chunks, then the server closes the connection
+
+  GET /stream/json
+    5 JSON objects, one on each line, one each 200 ms
+
+  GET /stream/binary
+    256 chunks of binary data, one each 10 ms
+
+  GET /stream/gzip
+    One gzip stream in 6 chunks
+
+  GET /stream/deflate
+    One deflate stream in 6 chunks
+
+  GET /stream/unknown-encoding
+    5 chunks with Content-Encoding: br, not compressed

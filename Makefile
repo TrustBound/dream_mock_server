@@ -1,43 +1,35 @@
-.PHONY: run test test-integration clean
+.PHONY: run test build format check check-snippets smoke docs clean
 
+# Runs the mock server on http://localhost:3004 until you stop it.
 run:
 	@gleam run -m standalone
 
+# Runs every test and checks that the line coverage of src/ is 100%.
 test:
-	@if [ -z "$$CI" ]; then \
-		pkill -9 -f "dream_mock_server" 2>/dev/null || true; \
-		lsof -ti:19876 | xargs kill -9 2>/dev/null || true; \
-		lsof -ti:19877 | xargs kill -9 2>/dev/null || true; \
-		lsof -ti:19878 | xargs kill -9 2>/dev/null || true; \
-		lsof -ti:19880 | xargs kill -9 2>/dev/null || true; \
-		lsof -ti:19881 | xargs kill -9 2>/dev/null || true; \
-		lsof -ti:19882 | xargs kill -9 2>/dev/null || true; \
-		lsof -ti:19883 | xargs kill -9 2>/dev/null || true; \
-		sleep 2; \
-	fi
 	@gleam test
-	@if [ -z "$$CI" ]; then \
-		pkill -9 -f "dream_mock_server" 2>/dev/null || true; \
-		sleep 1; \
-	fi
 
-test-integration:
-	@echo "=== Running integration tests ==="
-	@if [ -z "$$CI" ]; then \
-		echo "Killing any existing servers..."; \
-		pkill -9 -f "gleam run.*main" 2>/dev/null || true; \
-		pkill -9 -f "dream_mock_server" 2>/dev/null || true; \
-		lsof -ti:3004 | xargs kill -9 2>/dev/null || true; \
-		sleep 2; \
-	fi
-	@echo "Building Gleam application..."
-	@rm -rf build/dev build/prod
-	@output=$$(gleam build 2>&1) || { echo "$$output"; exit 1; }
-	@echo "Starting server in background..."
-	@../../integration/run-scenarios.sh mock_server 3004 standalone http1
-	@../../integration/run-scenarios.sh mock_server 3004 tls_standalone http2
+build:
+	@gleam build
+
+format:
+	@gleam format src test
+
+# What CI checks: format, build, tests with coverage, the docs code blocks,
+# the docs build, and the servers of the guides.
+check:
+	@sh scripts/check.sh
+
+# Checks that each code block in the docs matches a tested snippet file.
+check-snippets:
+	@gleam run -m dream_snippets
+
+# Starts and stops each server that the guide "Run the server while you
+# develop" runs until you stop it.
+smoke:
+	@bash scripts/run-server-smoke.sh
+
+docs:
+	@gleam docs build
 
 clean:
 	@gleam clean
-
-

@@ -1,0 +1,2 @@
+with_mock_server(19832, fetch_greeting)
+  -> Error(InitFailed("Port 19832 already in use on localhost. Stop the process using that port or choose a different one."))

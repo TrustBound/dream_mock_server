@@ -1,0 +1,2 @@
+fetch_text(".../stream/error", 2000)
+  -> Error(Refused(status: 500, body: <<"Error test chunk 1\nError test chunk 2\nError test chunk 3\n">>))

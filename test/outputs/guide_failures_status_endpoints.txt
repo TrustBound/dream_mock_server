@@ -1,0 +1,4 @@
+fetch_text(".../text", 2000)          -> Ok("Hello, World!")
+fetch_text(".../status/503", 2000)    -> Error(Refused(status: 503, body: <<"{\"status\":503}">>))
+fetch_text(".../status/404", 2000)    -> Error(Refused(status: 404, body: <<"{\"status\":404}">>))
+fetch_text(".../redirect/301", 2000)  -> Error(Refused(status: 301, body: <<>>))

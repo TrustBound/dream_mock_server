@@ -1,6 +1,5 @@
 //// README: Programmatic Control
 
-import dream/servers/mist/server as dream_server
 import dream_mock_server/server
 import gleam/int
 import gleam/result
@@ -20,7 +19,7 @@ pub fn fetch_text(port: Int) -> Result(#(Int, String), String) {
   response
 }
 
-fn start_server(port: Int) -> Result(dream_server.ServerHandle, String) {
+fn start_server(port: Int) -> Result(server.ServerHandle, String) {
   server.start(port)
   |> result.map_error(string.inspect)
 }

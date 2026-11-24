@@ -2,7 +2,6 @@
 ////
 //// One prefix route for any method, started in config mode.
 
-import dream/servers/mist/server as dream_server
 import dream_mock_server/config.{type MockRoute, MockRoute, Prefix}
 import dream_mock_server/server
 import gleam/option.{None}
@@ -23,7 +22,7 @@ pub fn chat_completion_routes() -> List(MockRoute) {
 
 pub fn start_chat_mock(
   port: Int,
-) -> Result(dream_server.ServerHandle, actor.StartError) {
+) -> Result(server.ServerHandle, actor.StartError) {
   // Point your proxy or client at http://localhost:<port>,
   // then call server.stop(handle).
   server.start_with_config(port, chat_completion_routes())

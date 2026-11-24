@@ -49,24 +49,32 @@ used in this mode.
 
 ## How to use it
 
+### Start config mode <a href="https://github.com/TrustBound/dream_mock_server/blob/1.1.1/test/snippets/release_1_1_0_config_mode.gleam"><img align="right" alt="Tested snippet" src="https://img.shields.io/badge/%F0%9F%A7%AA_tested-snippet-lightgreen.svg?style=flat-square"></a>
+
 ```gleam
+import dream/servers/mist/server as dream_server
 import dream_mock_server/config.{MockRoute, Prefix}
 import dream_mock_server/server
 import gleam/option.{None}
+import gleam/otp/actor
 
-let config = [
-  MockRoute(
-    path: "/v1/chat/completions",
-    path_match: Prefix,
-    method: None,
-    status: 200,
-    body: "{\"choices\":[{\"message\":{\"content\":\"\"}}]}",
-  ),
-]
+pub fn start_chat_mock(
+  port: Int,
+) -> Result(dream_server.ServerHandle, actor.StartError) {
+  let config = [
+    MockRoute(
+      path: "/v1/chat/completions",
+      path_match: Prefix,
+      method: None,
+      status: 200,
+      body: "{\"choices\":[{\"message\":{\"content\":\"\"}}]}",
+    ),
+  ]
 
-let assert Ok(handle) = server.start_with_config(3004, config)
-// ... run tests against http://127.0.0.1:3004 ...
-server.stop(handle)
+  // Run tests against http://127.0.0.1:<port>,
+  // then call server.stop(handle).
+  server.start_with_config(port, config)
+}
 ```
 
 ## Test coverage added

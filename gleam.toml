@@ -1,15 +1,26 @@
 name = "dream_mock_server"
-version = "1.1.1"
+version = "2.0.0"
 description = "General-purpose HTTP mock server developed by Dream - provides both streaming and non-streaming endpoints for testing HTTP clients"
 licences = ["MIT"]
-repository = { type = "github", user = "TrustBound", repo = "dream" }
+repository = { type = "github", user = "TrustBound", repo = "dream_mock_server" }
 links = [
     { title = "Documentation", href = "https://hexdocs.pm/dream_mock_server" },
-    { title = "GitHub", href = "https://github.com/TrustBound/dream" },
+    { title = "GitHub", href = "https://github.com/TrustBound/dream_mock_server" },
+]
+
+internal_modules = ["dream_mock_server/internal", "dream_mock_server/internal/*"]
+
+[documentation]
+pages = [
+    { title = "Getting started", path = "guides/getting-started.html", source = "./docs/guides/getting-started.md" },
+    { title = "Test how your client handles failures", path = "guides/testing-failures.html", source = "./docs/guides/testing-failures.md" },
+    { title = "Stand in for a third-party API", path = "guides/stand-in-for-an-api.html", source = "./docs/guides/stand-in-for-an-api.md" },
+    { title = "Run the server while you develop", path = "guides/run-the-server.html", source = "./docs/guides/run-the-server.md" },
+    { title = "Endpoint reference", path = "guides/endpoint-reference.html", source = "./docs/guides/endpoint-reference.md" },
 ]
 
 [dependencies]
-dream = { path = "../.." }
+dream_http_server = ">= 2.0.0 and < 3.0.0"
 gleam_erlang = ">= 1.0.0 and < 2.0.0"
 gleam_http = ">= 4.0.0 and < 5.0.0"
 gleam_json = ">= 2.2.0 and < 4.0.0"
@@ -18,6 +29,10 @@ gleam_stdlib = ">= 1.0.0 and < 2.0.0"
 gleam_yielder = ">= 1.1.0 and < 2.0.0"
 
 [dev-dependencies]
-gleeunit = ">= 1.0.0 and < 2.0.0"
+dream_test = ">= 3.0.0 and < 4.0.0"
+dream_snippets = ">= 1.0.0 and < 2.0.0"
+gleam_httpc = ">= 5.0.0 and < 6.0.0"
 
-
+[tools.dream_snippets]
+checked_from_version = "2.0.0"
+tested_files = ["test", ".github", "scripts", "gleam.toml"]
