@@ -52,7 +52,6 @@ Which endpoint tests which failure of your client. [Read more](https://github.co
 | ------------------------------- | --------------------------------------------------------------------- |
 | 🐢 **Slow answers**             | `GET /slow` waits 5 seconds, then answers 200                         |
 | 🔤 **Bodies that are not text** | `GET /non-utf8-error` answers 400 with bytes that are not valid UTF-8 |
-| 🔌 **A server that is down**    | Send the request to a port where nothing listens                      |
 
 ### Your own API
 
