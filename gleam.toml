@@ -1,6 +1,6 @@
 name = "dream_mock_server"
 version = "2.0.0"
-description = "General-purpose HTTP mock server developed by Dream - provides both streaming and non-streaming endpoints for testing HTTP clients"
+description = "A mock HTTP server for testing your client. Real failures, on demand."
 licences = ["MIT"]
 repository = { type = "github", user = "TrustBound", repo = "dream_mock_server" }
 links = [
