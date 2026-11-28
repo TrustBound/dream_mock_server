@@ -77,6 +77,12 @@ pub fn with_mock_server(
 - [Dream HTTP Client](https://github.com/TrustBound/dream_http_client)
 - [Streaming Capabilities Example](https://github.com/TrustBound/dream/tree/3.0.0/examples/streaming_capabilities)
 
+## About Dream
+
+[Dream](https://github.com/TrustBound/dream) is a collection of Gleam packages for building production web applications. Each package implements its standards completely, shares the same naming and style as the others, and is fully tested. TrustBound builds Dream for its own production systems and shares it in the hope that it helps yours.
+
+dream_mock_server works on its own. You don't need the rest of Dream to use it.
+
 ## Contributing
 
 See [CONTRIBUTING.md](https://github.com/TrustBound/dream_mock_server/blob/main/CONTRIBUTING.md).
