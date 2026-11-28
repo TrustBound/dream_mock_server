@@ -19,7 +19,7 @@
 
 ## What is Dream Mock Server?
 
-Dream Mock Server is an HTTP server you start inside a test, so your client talks to a real socket instead of a fake. It already serves the failures that clients get wrong: any status code, a gzip body that will not decompress, a stream that drops mid-way, a slow answer and every kind of redirect. Every answer and every pause is fixed, so a test gives the same result on every run.
+Dream Mock Server gives your tests a real server that misbehaves on cue. Slow answers, broken bodies, dropped streams and surprise redirects are all ready to go, so you can prove your client handles the bad days, not just the good ones. Every answer and every delay is fixed, so a test gives the same result on every run. Start it inside a test, or keep it running while you build.
 
 ## Features
 
